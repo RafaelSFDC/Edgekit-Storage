@@ -24,6 +24,11 @@
     "image-upload",
     "cdn"
   ],
+  "homepage": "https://github.com/RafaelSFDC/Edgekit-Storage#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RafaelSFDC/Edgekit-Storage.git"
+  },
   "author": "",
   "license": "MIT",
   "dependencies": {

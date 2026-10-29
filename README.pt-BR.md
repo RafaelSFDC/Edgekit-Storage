@@ -5,7 +5,7 @@
   <b>🇧🇷 Português (Brasil)</b>
 </p>
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/seu-usuario/edgekit-storage)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/RafaelSFDC/Edgekit-Storage)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Zero Egress](https://img.shields.io/badge/Bandwidth-Zero%20Egress%20Fee-emerald)](#)
 
@@ -74,8 +74,8 @@ O projeto conta com uma interface moderna construída em **React 19, Tailwind CS
 
 1. **Clone o repositório:**
    ```bash
-   git clone https://github.com/seu-usuario/cloudflare-storage.git
-   cd cloudflare-storage
+   git clone https://github.com/RafaelSFDC/Edgekit-Storage.git
+   cd Edgekit-Storage
    ```
 
 2. **Instale as dependências:**

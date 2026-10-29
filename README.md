@@ -5,7 +5,7 @@
   <a href="README.pt-BR.md">🇧🇷 Português (Brasil)</a>
 </p>
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/seu-usuario/edgekit-storage)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/RafaelSFDC/Edgekit-Storage)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Zero Egress](https://img.shields.io/badge/Bandwidth-Zero%20Egress%20Fee-emerald)](#)
 
@@ -74,8 +74,8 @@ The project includes a modern web dashboard built with **React 19, Tailwind CSS,
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/seu-usuario/edgekit-storage.git
-   cd edgekit-storage
+   git clone https://github.com/RafaelSFDC/Edgekit-Storage.git
+   cd Edgekit-Storage
    ```
 
 2. **Install dependencies:**

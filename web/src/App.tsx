@@ -286,8 +286,24 @@ export const App: React.FC = () => {
         {/* Footer */}
         <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground bg-background">
           <p>
-            EdgeKit Storage • {t.app.footer.developedFor}{' '}
-            <span className="text-foreground font-medium">Cloudflare Workers & R2</span> • {t.app.footer.openSource}
+            <a
+              href="https://github.com/RafaelSFDC/Edgekit-Storage"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-foreground hover:underline font-medium"
+            >
+              EdgeKit Storage
+            </a>{' '}
+            • {t.app.footer.developedFor}{' '}
+            <span className="text-foreground font-medium">Cloudflare Workers & R2</span> •{' '}
+            <a
+              href="https://github.com/RafaelSFDC/Edgekit-Storage/blob/master/LICENSE"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              {t.app.footer.openSource}
+            </a>
           </p>
         </footer>
       </div>
