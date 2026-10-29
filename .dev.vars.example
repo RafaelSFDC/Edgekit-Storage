@@ -1,0 +1,12 @@
+# Chave de API secreta para autenticar chamadas de upload, listagem e deleção
+API_KEY=sua-chave-secreta-forte-aqui
+
+# URL pública configurada no R2 (Custom Domain ou subdomínio r2.dev)
+# Exemplo: https://media.seudominio.com ou https://pub-xxxxxx.r2.dev
+PUBLIC_URL=http://localhost:8787/f
+
+# Tipos permitidos (* para todos, ou lista separada por vírgula como image/*,application/pdf)
+ALLOWED_MIME_TYPES=image/*,application/pdf
+
+# Limite de tamanho em Megabytes
+MAX_FILE_SIZE_MB=25
