@@ -3,6 +3,7 @@ import { setCookie, deleteCookie } from 'hono/cookie';
 import type { AppContext } from '../env';
 import { apiKeyAuth, AUTH_COOKIE_NAME } from '../middleware/auth';
 import { apiError, apiSuccess } from '../utils/response';
+import { timingSafeEqualStr } from '../utils/keys';
 
 export const authRouter = new Hono<AppContext>();
 
@@ -28,7 +29,7 @@ authRouter.post('/login', async (c) => {
     return apiError(c, 'Server authentication is not configured', 500);
   }
 
-  if (apiKey.trim() !== configuredKey) {
+  if (!timingSafeEqualStr(apiKey.trim(), configuredKey)) {
     return apiError(c, 'Invalid API Key', 401);
   }
 

@@ -31,7 +31,7 @@ const AlertDialogContent = React.forwardRef<
     <BaseAlertDialog.Popup
       ref={ref}
       className={cn(
-        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-md translate-x-[-50%] translate-y-[-50%] gap-4 border border-zinc-800 bg-zinc-900 p-6 shadow-2xl duration-200 rounded-2xl data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 text-zinc-100',
+        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-background p-6 shadow-lg duration-200 rounded-lg text-foreground data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0',
         className
       )}
       {...props}
@@ -76,7 +76,7 @@ const AlertDialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <BaseAlertDialog.Title
     ref={ref}
-    className={cn('text-sm font-semibold text-white', className)}
+    className={cn('text-lg font-semibold text-foreground', className)}
     {...props}
   />
 ));
@@ -88,7 +88,7 @@ const AlertDialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <BaseAlertDialog.Description
     ref={ref}
-    className={cn('text-xs text-zinc-400 leading-relaxed', className)}
+    className={cn('text-sm text-muted-foreground leading-relaxed', className)}
     {...props}
   />
 ));
@@ -100,7 +100,7 @@ const AlertDialogAction = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <BaseAlertDialog.Close
     ref={ref}
-    className={cn(buttonVariants({ variant: 'destructive', size: 'sm' }), className)}
+    className={cn(buttonVariants({ variant: 'destructive', size: 'default' }), className)}
     {...props}
   />
 ));
@@ -112,7 +112,7 @@ const AlertDialogCancel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <BaseAlertDialog.Close
     ref={ref}
-    className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), className)}
+    className={cn(buttonVariants({ variant: 'outline', size: 'default' }), className)}
     {...props}
   />
 ));

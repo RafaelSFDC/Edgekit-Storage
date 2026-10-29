@@ -41,3 +41,28 @@ export interface UploadItem {
   error?: string;
   result?: StorageObject;
 }
+
+export interface SignedUrlResponse {
+  success: boolean;
+  data: {
+    url: string;
+    key: string;
+    expiresAt: number;
+    expiresInSeconds: number;
+  };
+  error?: {
+    message: string;
+  };
+}
+
+export interface BatchDeleteResponse {
+  success: boolean;
+  data: {
+    message: string;
+    count: number;
+    keys: string[];
+  };
+  error?: {
+    message: string;
+  };
+}

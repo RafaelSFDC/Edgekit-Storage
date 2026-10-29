@@ -37,6 +37,13 @@ export interface Bindings {
    * Static assets fetcher for serving the React Dashboard
    */
   ASSETS?: Fetcher;
+
+  /**
+   * Comma-separated list of allowed origins for CORS.
+   * e.g. "https://app.yourdomain.com,http://localhost:3000"
+   * If not set or empty, allows request origin while validating security.
+   */
+  ALLOWED_ORIGINS?: string;
 }
 
 export type AppContext = {

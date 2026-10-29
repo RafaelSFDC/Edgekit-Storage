@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, AlertCircle, Loader2, Lock } from 'lucide-react';
+import { ShieldCheck, AlertCircle, Loader2, KeyRound } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -60,7 +60,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
         setErrorMsg(json.error?.message || 'Chave de API inválida (401).');
       }
     } catch {
-      setErrorMsg('Falha ao comunicar com o servidor.');
+      setErrorMsg('Falha de conexão com o servidor.');
     } finally {
       setLoading(false);
     }
@@ -70,13 +70,13 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && isAuthenticated && onClose()}>
       <DialogContent hideClose={!isAuthenticated}>
         <DialogHeader>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400">
-              <Lock className="w-5 h-5" />
+          <div className="flex items-center gap-2 mb-1">
+            <div className="h-8 w-8 rounded-md bg-secondary flex items-center justify-center text-foreground">
+              <KeyRound className="h-4 w-4" />
             </div>
             <div>
               <DialogTitle>
-                {isAuthenticated ? 'Sessão Ativa' : 'Acesso ao Dashboard'}
+                {isAuthenticated ? 'Sessão Ativa' : 'Acesso ao EdgeKit Storage'}
               </DialogTitle>
               <DialogDescription>
                 Autenticação Segura via Cookie HttpOnly
@@ -85,7 +85,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-4 pt-2">
           <div className="space-y-1.5">
             <Label htmlFor="apiKeyInput">Secret API Key</Label>
             <Input
@@ -96,23 +96,22 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                 setInputVal(e.target.value);
                 setErrorMsg(null);
               }}
-              placeholder="Digite sua API_KEY..."
+              placeholder="Digite ou cole sua API_KEY..."
               autoFocus
-              className="font-mono text-xs"
+              className="font-mono text-sm"
             />
           </div>
 
-          <Alert variant="default" className="bg-zinc-950/70 border-zinc-800">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <AlertDescription className="text-zinc-400 text-xs">
-              Sua chave é validada no backend e salva em um{' '}
-              <strong className="text-emerald-300">Cookie HttpOnly Seguro</strong>. O JavaScript não tem acesso a ela, prevenindo ataques XSS.
+          <Alert>
+            <ShieldCheck className="h-4 w-4 text-emerald-500" />
+            <AlertDescription className="text-xs">
+              Sua chave é salva em um <span className="text-foreground font-medium">Cookie HttpOnly Seguro</span>. O código client-side não tem acesso à chave, garantindo proteção contra roubo via XSS.
             </AlertDescription>
           </Alert>
 
           {errorMsg && (
             <Alert variant="destructive">
-              <AlertCircle className="w-4 h-4 text-red-400" />
+              <AlertCircle className="h-4 w-4" />
               <AlertDescription>{errorMsg}</AlertDescription>
             </Alert>
           )}
@@ -125,7 +124,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                 size="sm"
                 onClick={onClose}
               >
-                Fechar
+                Cancelar
               </Button>
             )}
             <Button
@@ -133,9 +132,10 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
               variant="default"
               size="sm"
               disabled={loading || !inputVal.trim()}
+              className="gap-1.5"
             >
-              {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              <span>Entrar no Dashboard</span>
+              {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              <span>Autenticar</span>
             </Button>
           </DialogFooter>
         </form>

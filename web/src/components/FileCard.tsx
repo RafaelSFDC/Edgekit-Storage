@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
-import { Copy, Check, Trash2, ExternalLink, FileText, Image as ImageIcon, Lock, Loader2 } from 'lucide-react';
+import { Copy, Check, Trash2, ExternalLink, FileText, Image as ImageIcon, Lock, Loader2, MoreVertical, Download } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from './ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -19,17 +26,22 @@ import type { StorageObject } from '../types';
 
 interface FileCardProps {
   object: StorageObject;
+  isSelected?: boolean;
+  onToggleSelect?: (key: string) => void;
   onDelete: (key: string) => Promise<boolean>;
   onPreview: (object: StorageObject) => void;
 }
 
 export const FileCard: React.FC<FileCardProps> = ({
   object,
+  isSelected,
+  onToggleSelect,
   onDelete,
   onPreview,
 }) => {
   const [copied, setCopied] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
 
   const isImage = object.mimeType.startsWith('image/') && !imgError;
@@ -37,8 +49,8 @@ export const FileCard: React.FC<FileCardProps> = ({
   const extension = object.key.split('.').pop()?.toUpperCase() || 'FILE';
   const fileName = object.key.split('/').pop() || object.key;
 
-  const handleCopy = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleCopy = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     navigator.clipboard.writeText(object.url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -48,146 +60,172 @@ export const FileCard: React.FC<FileCardProps> = ({
     setIsDeleting(true);
     await onDelete(object.key);
     setIsDeleting(false);
+    setIsAlertOpen(false);
   };
 
   return (
-    <Card className="group overflow-hidden flex flex-col hover:border-zinc-700/80 transition-all">
-      {/* Thumbnail Area */}
-      <div
-        onClick={() => onPreview(object)}
-        className="relative w-full aspect-video bg-zinc-950/60 overflow-hidden cursor-pointer flex items-center justify-center border-b border-zinc-800/60"
-      >
-        {isImage ? (
-          <img
-            src={object.url}
-            alt={fileName}
-            onError={() => setImgError(true)}
-            loading="lazy"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : isPdf ? (
-          <div className="flex flex-col items-center justify-center text-red-400/80 group-hover:scale-110 transition-transform">
-            <FileText className="w-12 h-12" />
-            <span className="text-[11px] font-semibold text-zinc-400 mt-1 uppercase tracking-wider">
-              Documento PDF
-            </span>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center text-zinc-500 group-hover:scale-110 transition-transform">
-            <ImageIcon className="w-12 h-12" />
-            <span className="text-[11px] font-semibold text-zinc-400 mt-1 uppercase tracking-wider">
-              {extension}
-            </span>
-          </div>
-        )}
-
-        {/* Top Badges */}
-        <div className="absolute top-2 left-2 flex items-center gap-1.5">
-          <Badge variant="outline" className="bg-zinc-950/80 backdrop-blur-md">
-            {extension}
-          </Badge>
-          {object.isPrivate && (
-            <Badge variant="warning" className="backdrop-blur-md">
-              <Lock className="w-2.5 h-2.5 mr-0.5" />
-              Privado
-            </Badge>
+    <>
+      <Card className={`group overflow-hidden flex flex-col transition-all duration-150 ${isSelected ? 'border-primary ring-1 ring-primary/40 bg-primary/[0.02]' : 'hover:border-muted-foreground/40'}`}>
+        {/* Thumbnail Area */}
+        <div
+          onClick={() => onPreview(object)}
+          className="relative w-full aspect-video bg-muted/40 overflow-hidden cursor-pointer flex items-center justify-center border-b border-border select-none"
+        >
+          {isImage ? (
+            <img
+              src={object.url}
+              alt={fileName}
+              onError={() => setImgError(true)}
+              loading="lazy"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+            />
+          ) : isPdf ? (
+            <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:scale-105 transition-transform">
+              <FileText className="h-10 w-10 text-destructive/80" />
+              <span className="text-[10px] font-medium mt-1 uppercase tracking-wider text-muted-foreground">
+                Documento PDF
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:scale-105 transition-transform">
+              <ImageIcon className="h-10 w-10 text-muted-foreground" />
+              <span className="text-[10px] font-medium mt-1 uppercase tracking-wider text-muted-foreground">
+                {extension}
+              </span>
+            </div>
           )}
-        </div>
 
-        {/* Hover Quick Action */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <span className="px-3 py-1.5 bg-zinc-900/90 text-white rounded-lg text-xs font-medium border border-zinc-700 shadow-lg">
-            Ver detalhes
-          </span>
-        </div>
-      </div>
-
-      {/* Card Body */}
-      <CardContent className="p-3.5 flex flex-col justify-between flex-1">
-        <div>
-          <h4
-            title={object.key}
-            className="text-xs font-semibold text-white truncate hover:text-orange-400 transition-colors cursor-pointer"
-            onClick={() => onPreview(object)}
-          >
-            {fileName}
-          </h4>
-          <p className="text-[11px] text-zinc-400 truncate mt-0.5 font-mono">
-            {object.key}
-          </p>
-        </div>
-
-        <div className="flex items-center justify-between text-[11px] text-zinc-400 mt-3 pt-2.5 border-t border-zinc-800/60">
-          <span>{formatBytes(object.size)}</span>
-          <span>{formatDate(object.uploadedAt)}</span>
-        </div>
-
-        {/* Actions Bar */}
-        <div className="mt-3 flex items-center gap-1.5">
-          <Button
-            variant={copied ? 'outline' : 'secondary'}
-            size="sm"
-            onClick={handleCopy}
-            className={`flex-1 text-xs h-8 ${
-              copied ? 'border-emerald-700 text-emerald-300' : ''
-            }`}
-          >
-            {copied ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Copiado</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5" />
-                <span>Copiar URL</span>
-              </>
-            )}
-          </Button>
-
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 text-zinc-400 hover:text-white shrink-0"
-            onClick={() => window.open(object.url, '_blank')}
-            title="Abrir em nova aba"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Button>
-
-          {/* AlertDialog for Safe Deletion */}
-          <AlertDialog>
-            <AlertDialogTrigger render={
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-zinc-400 hover:text-red-400 hover:bg-red-950/30 shrink-0"
-                title="Excluir arquivo"
+          {/* Badges and selection checkbox on top */}
+          <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10" onClick={(e) => e.stopPropagation()}>
+            {onToggleSelect && (
+              <input
+                type="checkbox"
+                checked={Boolean(isSelected)}
+                onChange={() => onToggleSelect(object.key)}
+                className="h-4 w-4 rounded border-border accent-primary cursor-pointer transition-opacity"
+                title="Selecionar para ações em lote"
               />
-            }>
-              {isDeleting ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Trash2 className="w-3.5 h-3.5" />
-              )}
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Excluir Arquivo</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Tem certeza que deseja excluir <strong>{fileName}</strong>? Esta ação é irreversível e removerá o arquivo permanentemente do bucket R2.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleConfirmDelete}>
-                  Excluir Permanentemente
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            )}
+            <Badge variant="secondary" className="backdrop-blur bg-background/80 text-[10px] py-0 pointer-events-none">
+              {extension}
+            </Badge>
+            {object.isPrivate && (
+              <Badge variant="outline" className="backdrop-blur bg-background/80 text-[10px] py-0 border-border text-amber-500 pointer-events-none">
+                <Lock className="h-2.5 w-2.5 mr-0.5" />
+                Privado
+              </Badge>
+            )}
+          </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Card Body */}
+        <CardContent className="p-4 flex flex-col justify-between flex-1 space-y-3">
+          <div>
+            <h4
+              title={object.key}
+              className="text-sm font-medium text-foreground truncate hover:underline cursor-pointer"
+              onClick={() => onPreview(object)}
+            >
+              {fileName}
+            </h4>
+            <p className="text-xs text-muted-foreground truncate font-mono mt-0.5">
+              {object.key}
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border">
+            <span>{formatBytes(object.size)}</span>
+            <span>{formatDate(object.uploadedAt)}</span>
+          </div>
+
+          {/* Action Row */}
+          <div className="flex items-center gap-1.5 pt-1">
+            <Button
+              variant={copied ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={handleCopy}
+              className="flex-1 text-xs h-8 gap-1.5"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  <span className="text-emerald-500 font-medium">Copiado</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>Copiar URL</span>
+                </>
+              )}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+              onClick={() => window.open(object.url, '_blank')}
+              title="Abrir em nova aba"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Button>
+
+            {/* Dropdown Menu for More Actions */}
+            <DropdownMenu>
+              <DropdownMenuTrigger render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                  title="Mais ações"
+                />
+              }>
+                <MoreVertical className="h-3.5 w-3.5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onPreview(object)}>
+                  <FileText className="h-4 w-4" />
+                  <span>Ver Detalhes</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleCopy()}>
+                  <Copy className="h-4 w-4" />
+                  <span>Copiar Link Direto</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.open(object.url, '_blank')}>
+                  <Download className="h-4 w-4" />
+                  <span>Abrir / Baixar</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setIsAlertOpen(true)}
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Excluir Arquivo</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Delete Confirmation Alert Dialog */}
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Arquivo do R2</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir permanentemente o arquivo <strong>{fileName}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting}>
+              {isDeleting && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
+              Excluir Permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Check, Code, Terminal, FileCode } from 'lucide-react';
+import { Copy, Check, Code2, Terminal, Layers } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -27,11 +27,11 @@ export const SnippetModal: React.FC<SnippetModalProps> = ({ isOpen, onClose }) =
       : 'https://storage-api.seudominio.com';
 
   const clientCode = `/**
- * Cloudflare Storage Client (Zero-Dependency)
- * Salve este arquivo em lib/storage.ts
+ * EdgeKit Storage Client (Zero-Dependency)
+ * Salve em lib/edgekit-storage.ts
  */
 
-export interface StorageConfig {
+export interface EdgeKitConfig {
   baseUrl: string;
   apiKey: string;
 }
@@ -43,7 +43,7 @@ export interface UploadOptions {
   private?: boolean;
 }
 
-export function createStorageClient(config: StorageConfig) {
+export function createEdgeKitStorage(config: EdgeKitConfig) {
   const baseUrl = config.baseUrl.replace(/\\/+$/, '');
   const authHeaders = { 'X-API-Key': config.apiKey.trim() };
 
@@ -77,6 +77,38 @@ export function createStorageClient(config: StorageConfig) {
       return json.success;
     },
 
+    async deleteMany(keys: string[]) {
+      const res = await fetch(\`\${baseUrl}/api/files/batch-delete\`, {
+        method: 'POST',
+        headers: {
+          ...authHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ keys }),
+      });
+      const json = await res.json();
+      return json.success;
+    },
+
+    async getSignedUrl(key: string, options: { expiresInSeconds?: number } = {}) {
+      const res = await fetch(\`\${baseUrl}/api/signed-url\`, {
+        method: 'POST',
+        headers: {
+          ...authHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          key,
+          expiresInSeconds: options.expiresInSeconds || 3600,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error?.message || 'Falha ao gerar URL assinada');
+      }
+      return json.data;
+    },
+
     async list(options: { limit?: number; cursor?: string; prefix?: string } = {}) {
       const params = new URLSearchParams();
       if (options.limit) params.set('limit', String(options.limit));
@@ -92,11 +124,11 @@ export function createStorageClient(config: StorageConfig) {
 }
 `;
 
-  const usageCode = `import { createStorageClient } from '@/lib/storage';
+  const usageCode = `import { createEdgeKitStorage } from '@/lib/edgekit-storage';
 
-const storage = createStorageClient({
-  baseUrl: process.env.STORAGE_BASE_URL || '${currentOrigin}',
-  apiKey: process.env.STORAGE_API_KEY!,
+const storage = createEdgeKitStorage({
+  baseUrl: process.env.EDGEKIT_STORAGE_URL || '${currentOrigin}',
+  apiKey: process.env.EDGEKIT_STORAGE_API_KEY!,
 });
 
 // Exemplo: Upload no Next.js Server Action ou Route Handler
@@ -109,8 +141,16 @@ export async function uploadAvatar(formData: FormData) {
   });
 
   console.log('URL da Imagem:', uploaded.url);
-  console.log('Chave:', uploaded.key);
+  console.log('Chave R2:', uploaded.key);
   return uploaded;
+}
+
+// Exemplo: Gerar link temporário para arquivo privado (sem expor API Key)
+export async function getPrivateInvoiceUrl(invoiceKey: string) {
+  const { url } = await storage.getSignedUrl(invoiceKey, {
+    expiresInSeconds: 3600, // 1 hora
+  });
+  return url;
 }
 `;
 
@@ -125,13 +165,13 @@ export async function uploadAvatar(formData: FormData) {
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
         <DialogHeader>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400">
-              <FileCode className="w-5 h-5" />
+            <div className="h-8 w-8 rounded-md bg-secondary flex items-center justify-center text-foreground">
+              <Layers className="h-4 w-4" />
             </div>
             <div>
-              <DialogTitle>Integração Copy-Paste</DialogTitle>
+              <DialogTitle>Integração EdgeKit Storage</DialogTitle>
               <DialogDescription>
-                Zero dependências NPM, use diretamente no seu app TypeScript
+                Zero dependências externas, TypeScript nativo e Fetch padrão
               </DialogDescription>
             </div>
           </div>
@@ -140,35 +180,35 @@ export async function uploadAvatar(formData: FormData) {
         <div className="flex-1 flex flex-col min-h-0 mt-3">
           <Tabs defaultValue="client" className="flex-1 flex flex-col">
             <TabsList className="w-fit">
-              <TabsTrigger value="client" className="gap-1.5">
-                <Code className="w-3.5 h-3.5" />
-                <span>lib/storage.ts</span>
+              <TabsTrigger value="client" className="gap-1.5 text-xs">
+                <Code2 className="h-3.5 w-3.5" />
+                <span>lib/edgekit-storage.ts</span>
               </TabsTrigger>
-              <TabsTrigger value="usage" className="gap-1.5">
-                <Terminal className="w-3.5 h-3.5" />
+              <TabsTrigger value="usage" className="gap-1.5 text-xs">
+                <Terminal className="h-3.5 w-3.5" />
                 <span>Exemplo de Uso</span>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="client" className="relative flex-1 mt-3 min-h-[300px]">
-              <div className="relative h-full rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
-                <pre className="p-4 text-xs font-mono text-zinc-300 overflow-auto h-full max-h-[350px] select-all">
+              <div className="relative h-full rounded-md border border-border bg-muted/30 overflow-hidden">
+                <pre className="p-4 text-xs font-mono text-foreground overflow-auto h-full max-h-[350px] select-all">
                   {clientCode}
                 </pre>
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={() => handleCopy(clientCode, 'client')}
-                  className="absolute top-3 right-3 shadow-md"
+                  className="absolute top-2.5 right-2.5 shadow-sm text-xs gap-1"
                 >
                   {copied === 'client' ? (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-emerald-400">Copiado!</span>
+                      <Check className="h-3.5 w-3.5 text-emerald-500" />
+                      <span className="text-emerald-500">Copiado</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3.5 h-3.5" />
+                      <Copy className="h-3.5 w-3.5" />
                       <span>Copiar Código</span>
                     </>
                   )}
@@ -177,24 +217,24 @@ export async function uploadAvatar(formData: FormData) {
             </TabsContent>
 
             <TabsContent value="usage" className="relative flex-1 mt-3 min-h-[300px]">
-              <div className="relative h-full rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
-                <pre className="p-4 text-xs font-mono text-zinc-300 overflow-auto h-full max-h-[350px] select-all">
+              <div className="relative h-full rounded-md border border-border bg-muted/30 overflow-hidden">
+                <pre className="p-4 text-xs font-mono text-foreground overflow-auto h-full max-h-[350px] select-all">
                   {usageCode}
                 </pre>
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={() => handleCopy(usageCode, 'usage')}
-                  className="absolute top-3 right-3 shadow-md"
+                  className="absolute top-2.5 right-2.5 shadow-sm text-xs gap-1"
                 >
                   {copied === 'usage' ? (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-emerald-400">Copiado!</span>
+                      <Check className="h-3.5 w-3.5 text-emerald-500" />
+                      <span className="text-emerald-500">Copiado</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3.5 h-3.5" />
+                      <Copy className="h-3.5 w-3.5" />
                       <span>Copiar Código</span>
                     </>
                   )}
@@ -204,9 +244,9 @@ export async function uploadAvatar(formData: FormData) {
           </Tabs>
         </div>
 
-        <DialogFooter className="pt-4 border-t border-zinc-800 justify-between items-center sm:justify-between">
-          <span className="text-xs text-zinc-400">
-            Sem travas de dependência, 100% TypeScript e Fetch nativo.
+        <DialogFooter className="pt-4 border-t border-border flex items-center justify-between sm:justify-between">
+          <span className="text-xs text-muted-foreground">
+            Compatível com Next.js, Node.js, Remix, Vite, Astro e Cloudflare Workers.
           </span>
           <Button variant="outline" size="sm" onClick={onClose}>
             Fechar

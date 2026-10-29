@@ -97,3 +97,82 @@ export function resolveFileUrl(
   // Fallback: worker public stream route
   return `${workerBase}/f/${key}`;
 }
+
+/**
+ * Constant-time string comparison to prevent timing attacks.
+ */
+export function timingSafeEqualStr(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+/**
+ * Generates an HMAC-SHA256 signature token for a file key and expiration timestamp.
+ */
+export async function generateSignedToken(
+  key: string,
+  secret: string,
+  expiresAt: number
+): Promise<string> {
+  const enc = new TextEncoder();
+  const keyData = enc.encode(secret);
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const cleanKey = key.replace(/^\/+/, '').replace(/^private\//, '');
+  const data = enc.encode(`${cleanKey}:${expiresAt}`);
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, data);
+
+  return Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * Verifies an HMAC-SHA256 signature token and checks expiration.
+ */
+export async function verifySignedToken(
+  key: string,
+  secret: string,
+  token: string,
+  expiresAt: number
+): Promise<boolean> {
+  const now = Math.floor(Date.now() / 1000);
+  if (now > expiresAt) {
+    return false;
+  }
+
+  const expectedToken = await generateSignedToken(key, secret, expiresAt);
+  return timingSafeEqualStr(token, expectedToken);
+}
+
+/**
+ * Builds a signed URL for a private file with an expiration timestamp.
+ */
+export async function buildSignedUrl(
+  key: string,
+  secret: string,
+  requestUrl: string,
+  expiresInSeconds = 3600
+): Promise<{ url: string; expiresAt: number; token: string }> {
+  const expiresAt = Math.floor(Date.now() / 1000) + expiresInSeconds;
+  const token = await generateSignedToken(key, secret, expiresAt);
+
+  const parsedRequest = new URL(requestUrl);
+  const workerBase = `${parsedRequest.protocol}//${parsedRequest.host}`;
+  const cleanKey = key.replace(/^\/+/, '').replace(/^private\//, '');
+  const url = `${workerBase}/private/${cleanKey}?token=${token}&expires=${expiresAt}`;
+
+  return { url, expiresAt, token };
+}

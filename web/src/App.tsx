@@ -20,6 +20,9 @@ export const App: React.FC = () => {
 
   const [objects, setObjects] = useState<StorageObject[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Derive unique folders from object keys
@@ -39,13 +42,15 @@ export const App: React.FC = () => {
     setError(null);
 
     try {
-      const res = await fetch('/api/files?limit=100', {
+      const res = await fetch('/api/files?limit=50', {
         credentials: 'include',
       });
 
       if (res.status === 401) {
         setIsAuthenticated(false);
         setObjects([]);
+        setNextCursor(null);
+        setHasMore(false);
         setIsKeyModalOpen(true);
         return;
       }
@@ -55,8 +60,10 @@ export const App: React.FC = () => {
       if (res.ok && json.success) {
         setIsAuthenticated(true);
         setObjects(json.data.objects || []);
+        setNextCursor(json.data.cursor || null);
+        setHasMore(Boolean(json.data.truncated && json.data.cursor));
       } else {
-        setError(json.error?.message || 'Falha ao carregar arquivos do R2.');
+        setError(json.error?.message || 'Falha ao carregar arquivos do bucket R2.');
       }
     } catch {
       setError('Erro de conexão ao carregar arquivos.');
@@ -64,6 +71,31 @@ export const App: React.FC = () => {
       setIsLoading(false);
     }
   }, []);
+
+  const fetchMoreFiles = useCallback(async () => {
+    if (!nextCursor || isLoadingMore) return;
+    setIsLoadingMore(true);
+
+    try {
+      const res = await fetch(`/api/files?limit=50&cursor=${encodeURIComponent(nextCursor)}`, {
+        credentials: 'include',
+      });
+
+      const json: ListResponse = await res.json();
+      if (res.ok && json.success) {
+        const newObjects = json.data.objects || [];
+        setObjects((prev) => [...prev, ...newObjects]);
+        setNextCursor(json.data.cursor || null);
+        setHasMore(Boolean(json.data.truncated && json.data.cursor));
+      } else {
+        setError(json.error?.message || 'Falha ao carregar mais arquivos.');
+      }
+    } catch {
+      setError('Erro de conexão ao carregar mais arquivos.');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [nextCursor, isLoadingMore]);
 
   // Check auth status on initial mount
   useEffect(() => {
@@ -132,9 +164,34 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleBatchDelete = async (keys: string[]): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/files/batch-delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ keys }),
+      });
+
+      if (res.ok) {
+        const keySet = new Set(keys);
+        setObjects((prev) => prev.filter((o) => !keySet.has(o.key)));
+        if (previewObject && keySet.has(previewObject.key)) {
+          setPreviewObject(null);
+        }
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
   return (
     <TooltipProvider>
-      <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 selection:bg-orange-500 selection:text-white">
+      <div className="min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground">
         {/* Top Navbar */}
         <Navbar
           isAuthenticated={isAuthenticated}
@@ -145,20 +202,20 @@ export const App: React.FC = () => {
           isLoading={isLoading}
         />
 
-        {/* Main Container */}
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Main Content */}
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
           {/* Error notification banner */}
           {error && (
-            <Alert variant="destructive" className="mb-6 flex items-center justify-between">
+            <Alert variant="destructive" className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-400" />
+                <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsKeyModalOpen(true)}
-                className="h-7 text-xs border-red-800 text-red-200 hover:bg-red-900"
+                className="h-8 text-xs border-destructive text-destructive hover:bg-destructive/10"
               >
                 Configurar Chave
               </Button>
@@ -179,22 +236,28 @@ export const App: React.FC = () => {
             onOpenKeyModal={() => setIsKeyModalOpen(true)}
           />
 
-          {/* File Grid / Explorer */}
-          <div className="mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <span>Seus Arquivos</span>
-                <span className="text-xs text-zinc-500 font-normal">
-                  ({objects.length} itens)
+          {/* Storage Explorer Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-baseline gap-2">
+                <h2 className="text-base font-semibold tracking-tight text-foreground">
+                  Arquivos no Bucket
+                </h2>
+                <span className="text-xs text-muted-foreground font-normal">
+                  ({objects.length} {objects.length === 1 ? 'item' : 'itens'})
                 </span>
-              </h2>
+              </div>
             </div>
 
             <FileGrid
               objects={objects}
               folders={folders}
               isLoading={isLoading}
+              isLoadingMore={isLoadingMore}
+              hasMore={hasMore}
+              onLoadMore={fetchMoreFiles}
               onDelete={handleDelete}
+              onBatchDelete={handleBatchDelete}
               onPreview={(obj) => setPreviewObject(obj)}
             />
           </div>
@@ -219,12 +282,10 @@ export const App: React.FC = () => {
         />
 
         {/* Footer */}
-        <footer className="border-t border-zinc-800/60 py-6 text-center text-xs text-zinc-500 bg-zinc-950">
+        <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground bg-background">
           <p>
-            Cloudflare Storage • Powered by{' '}
-            <span className="text-zinc-400 font-medium">Hono</span>,{' '}
-            <span className="text-orange-400 font-medium">Cloudflare Workers</span> &{' '}
-            <span className="text-amber-400 font-medium">R2</span> • Open-Source MIT
+            EdgeKit Storage • Desenvolvido para{' '}
+            <span className="text-foreground font-medium">Cloudflare Workers & R2</span> • Open-Source MIT
           </p>
         </footer>
       </div>

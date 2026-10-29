@@ -1,13 +1,13 @@
 /**
- * Cloudflare Storage Client (Zero-Dependency Copy-Paste Snippet)
+ * EdgeKit Storage Client (Zero-Dependency Copy-Paste Snippet)
  * 
- * Copie este arquivo diretamente para o seu projeto (ex: `lib/storage.ts`).
+ * Copie este arquivo diretamente para o seu projeto (ex: `lib/edgekit-storage.ts`).
  * Funciona nativamente com Fetch no Node.js 18+, Next.js, Astro, Remix, Vite, Bun e Deno.
  */
 
 export interface StorageConfig {
   /**
-   * URL base do seu Worker Cloudflare Storage
+   * URL base do seu Worker EdgeKit Storage
    * Exemplo: "https://storage-api.seudominio.com" ou "http://localhost:8787"
    */
   baseUrl: string;
@@ -108,6 +108,61 @@ export function createStorageClient(config: StorageConfig) {
       }
 
       return true;
+    },
+
+    /**
+     * Exclui múltiplos arquivos do bucket de uma só vez (deleção em lote)
+     */
+    async deleteMany(keys: string[]): Promise<boolean> {
+      const res = await fetch(`${baseUrl}/api/files/batch-delete`, {
+        method: 'POST',
+        headers: {
+          ...authHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ keys }),
+      });
+
+      const json = await res.json() as { success: boolean; error?: { message: string } };
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.error?.message || `Falha ao deletar arquivos em lote (Status ${res.status})`);
+      }
+
+      return true;
+    },
+
+    /**
+     * Gera uma URL temporária assinada com HMAC para acesso seguro a arquivo privado.
+     * Pode ser entregue com segurança ao frontend/usuário final sem expor a API Key.
+     */
+    async getSignedUrl(
+      key: string,
+      options: { expiresInSeconds?: number } = {}
+    ): Promise<{ url: string; key: string; expiresAt: number; expiresInSeconds: number }> {
+      const res = await fetch(`${baseUrl}/api/signed-url`, {
+        method: 'POST',
+        headers: {
+          ...authHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          key,
+          expiresInSeconds: options.expiresInSeconds || 3600,
+        }),
+      });
+
+      const json = await res.json() as {
+        success: boolean;
+        data: { url: string; key: string; expiresAt: number; expiresInSeconds: number };
+        error?: { message: string };
+      };
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.error?.message || `Falha ao gerar URL assinada (Status ${res.status})`);
+      }
+
+      return json.data;
     },
 
     /**

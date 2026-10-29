@@ -13,7 +13,17 @@ const app = new Hono<AppContext>();
 app.use(
   '*',
   cors({
-    origin: (origin) => origin || '*',
+    origin: (origin, c) => {
+      if (!origin) return '*';
+      const allowedOrigins = c.env.ALLOWED_ORIGINS?.split(',')
+        .map((o: string) => o.trim())
+        .filter(Boolean);
+
+      if (allowedOrigins && allowedOrigins.length > 0) {
+        return allowedOrigins.includes(origin) ? origin : '';
+      }
+      return origin;
+    },
     credentials: true,
     allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS', 'HEAD'],
     allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],

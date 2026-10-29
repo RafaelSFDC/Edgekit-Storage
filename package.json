@@ -1,11 +1,12 @@
 {
-  "name": "cloudflare-storage",
+  "name": "edgekit-storage",
   "version": "1.0.0",
-  "description": "Lightweight open-source image and file storage backend for Cloudflare Workers & R2",
+  "description": "Lightweight open-source image and file storage backend for Cloudflare Workers & R2 — EdgeKit Storage",
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "setup": "node scripts/setup.mjs",
     "dev:web": "vite --config web/vite.config.ts",
     "build:web": "vite build --config web/vite.config.ts",
     "build": "pnpm build:web && tsc --noEmit",

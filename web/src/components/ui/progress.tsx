@@ -13,14 +13,14 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
       ref={ref}
       value={value ?? 0}
       className={cn(
-        'relative h-1.5 w-full overflow-hidden rounded-full bg-zinc-800',
+        'relative h-2 w-full overflow-hidden rounded-full bg-secondary',
         className
       )}
       {...props}
     >
       <BaseProgress.Track className="h-full w-full">
         <BaseProgress.Indicator
-          className="h-full bg-gradient-to-r from-orange-500 to-amber-500 transition-all duration-300 rounded-full"
+          className="h-full bg-primary transition-all duration-300 rounded-full"
           style={{ width: `${Math.min(100, Math.max(0, value ?? 0))}%` }}
         />
       </BaseProgress.Track>

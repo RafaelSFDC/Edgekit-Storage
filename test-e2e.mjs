@@ -1,10 +1,10 @@
 import assert from 'node:assert';
 
-const BASE_URL = 'http://127.0.0.1:8787';
+const BASE_URL = process.env.TEST_BASE_URL || 'http://127.0.0.1:8788';
 const API_KEY = 'test-secret-api-key-12345';
 
 async function runTests() {
-  console.log('--- Starting Cloudflare Storage End-to-End Tests ---');
+  console.log('--- Starting EdgeKit Storage End-to-End Tests ---');
 
   // Test 1: Health check
   console.log('1. Testing GET /health...');
@@ -136,32 +136,89 @@ async function runTests() {
   assert.strictEqual(privText, 'Secret private document');
   console.log('   ✓ Private file access with HttpOnly cookie verified');
 
-  // Test 10: Delete file (DELETE /api/files/:key)
-  console.log('10. Testing DELETE /api/files/:key...');
-  const delRes = await fetch(`${BASE_URL}/api/files/${fileKey}`, {
-    method: 'DELETE',
-    headers: { 'X-API-Key': API_KEY },
+  // Test 10: Generate Signed URL for private file
+  console.log('10. Testing POST /api/signed-url (HMAC signed URL)...');
+  const signedUrlRes = await fetch(`${BASE_URL}/api/signed-url`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': API_KEY,
+    },
+    body: JSON.stringify({ key: privKey, expiresInSeconds: 60 }),
   });
-  assert.strictEqual(delRes.status, 200);
-  console.log('   ✓ File deleted successfully');
+  assert.strictEqual(signedUrlRes.status, 200);
+  const signedUrlJson = await signedUrlRes.json();
+  assert.strictEqual(signedUrlJson.success, true);
+  assert.ok(signedUrlJson.data.url.includes('?token='));
+  assert.ok(signedUrlJson.data.url.includes('&expires='));
+  console.log('    ✓ Signed URL generated successfully:', signedUrlJson.data.url);
 
-  // Test 11: Verify 404 after deletion
-  console.log('11. Verifying GET /f/:key after deletion...');
+  // Test 11: Access private file using Signed URL WITHOUT any API Key or Cookie
+  console.log('11. Testing GET /private/:key with Signed URL (Zero Auth Headers/Cookies)...');
+  const anonymousSignedAccessRes = await fetch(signedUrlJson.data.url);
+  assert.strictEqual(anonymousSignedAccessRes.status, 200);
+  const anonymousText = await anonymousSignedAccessRes.text();
+  assert.strictEqual(anonymousText, 'Secret private document');
+  console.log('    ✓ Private file accessed securely via Signed URL');
+
+  // Test 12: Access with tampered signed URL token (Must be 403)
+  console.log('12. Testing tampered Signed URL token rejection...');
+  const tamperedUrl = signedUrlJson.data.url.replace(/token=[a-f0-9]{4}/, 'token=dead');
+  const tamperedRes = await fetch(tamperedUrl);
+  assert.strictEqual(tamperedRes.status, 403);
+  console.log('    ✓ Tampered Signed URL correctly rejected with 403 Forbidden');
+
+  // Test 13: Access with expired Signed URL timestamp (Must be 403)
+  console.log('13. Testing expired Signed URL timestamp rejection...');
+  const expiredUrl = signedUrlJson.data.url.replace(/expires=\d+/, 'expires=1000000000');
+  const expiredRes = await fetch(expiredUrl);
+  assert.strictEqual(expiredRes.status, 403);
+  console.log('    ✓ Expired Signed URL correctly rejected with 403 Forbidden');
+
+  // Test 14: Batch delete multiple files
+  console.log('14. Testing POST /api/files/batch-delete...');
+  // Upload a second file to delete together with privKey and fileKey
+  const batchForm = new FormData();
+  batchForm.append('file', new Blob(['Batch test 2'], { type: 'image/png' }), 'batch2.png');
+  const batchUploadRes = await fetch(`${BASE_URL}/upload`, {
+    method: 'POST',
+    headers: { 'X-API-Key': API_KEY },
+    body: batchForm,
+  });
+  const batchUploadJson = await batchUploadRes.json();
+  const fileKey2 = batchUploadJson.data.key;
+
+  const batchDelRes = await fetch(`${BASE_URL}/api/files/batch-delete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': API_KEY,
+    },
+    body: JSON.stringify({ keys: [fileKey, privKey, fileKey2] }),
+  });
+  assert.strictEqual(batchDelRes.status, 200);
+  const batchDelJson = await batchDelRes.json();
+  assert.strictEqual(batchDelJson.success, true);
+  assert.strictEqual(batchDelJson.data.count, 3);
+  console.log('    ✓ Batch delete deleted 3 files simultaneously');
+
+  // Test 15: Verify 404 after batch deletion
+  console.log('15. Verifying GET after batch deletion...');
   const afterDelRes = await fetch(`${BASE_URL}/f/${fileKey}`);
   assert.strictEqual(afterDelRes.status, 404);
-  console.log('   ✓ Deleted file returns 404');
+  console.log('    ✓ Deleted file returns 404');
 
-  // Test 12: Logout
-  console.log('12. Testing POST /api/auth/logout...');
+  // Test 16: Logout
+  console.log('16. Testing POST /api/auth/logout...');
   const logoutRes = await fetch(`${BASE_URL}/api/auth/logout`, {
     method: 'POST',
   });
   assert.strictEqual(logoutRes.status, 200);
   const logoutCookie = logoutRes.headers.get('set-cookie');
   assert.ok(logoutCookie.includes('Max-Age=0') || logoutCookie.includes('cf_storage_session=;'), 'Cookie should be deleted on logout');
-  console.log('   ✓ Logout cleared the session cookie');
+  console.log('    ✓ Logout cleared the session cookie');
 
-  console.log('\n🎉 ALL 12 TESTS PASSED SUCCESSFULLY! 🎉\n');
+  console.log('\n🎉 ALL 16 TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
 
 runTests().catch((err) => {

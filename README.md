@@ -1,25 +1,27 @@
-# Cloudflare Storage (Hono + Cloudflare R2)
+# EdgeKit Storage (Cloudflare Workers + R2)
 
-Um backend open-source minimalista, rápido e de custo ultra-baixo para gerenciamento e armazenamento de imagens e arquivos, desenvolvido com **Hono** no **Cloudflare Workers** integrado ao **Cloudflare R2**.
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/seu-usuario/edgekit-storage)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Zero Egress](https://img.shields.io/badge/Bandwidth-Zero%20Egress%20Fee-emerald)](#)
 
-Projetado especificamente para atuar como microsserviço de upload para outros backends (Node.js, Python, PHP, Go, etc.) e frontends com autenticação simples via **API Key**.
+Uma **alternativa open-source, serverless e self-hosted ao Uploadthing e AWS S3**, desenvolvida com **Hono** no **Cloudflare Workers** integrado ao **Cloudflare R2**. 
+
+Projetada com dupla finalidade:
+1. **Dashboard visual completa** para gerenciar seus arquivos na nuvem com tema escuro, busca e drag-and-drop.
+2. **Microsserviço / API externa de alta performance** para qualquer aplicação existente (seja em **Vercel, VPS, AWS, Next.js, Node, Laravel, Go ou Python**), com um cliente TypeScript estilo shadcn de zero dependências.
 
 ---
 
 ## 🚀 Destaques
 
-- **Dashboard Web Moderna Integrada**: Interface em **React + Tailwind + shadcn/ui** servida diretamente pela Cloudflare na rota raiz `/` com tema escuro, drag-and-drop, filtros e pré-visualização de arquivos.
-- **Zero Egress Fee**: O Cloudflare R2 não cobra taxas de tráfego de saída (bandwidth de download gratuita).
-- **Sem Consumo de Worker em Leituras**: Configure um Custom Domain no R2 (ex: `media.seusite.com`) e os arquivos serão servidos **diretamente pela CDN do R2 sem gastar requisições do Worker**.
-- **Autenticação Dupla (API Key + Cookie HttpOnly)**: 
-  - Para scripts e backends externos: Header `X-API-Key` ou `Authorization: Bearer <key>`.
-  - Para a Dashboard no navegador: Sessão segura via **Cookie HttpOnly** (imune a ataques XSS via JavaScript).
-- **Snippet Copy-Paste estilo shadcn (Zero Dependências NPM)**: Arquivo TypeScript limpo e tipado (`snippets/storage.ts`) para colar diretamente no seu app (`lib/storage.ts`), sem inchar o `package.json`.
-- **Nomes Únicos Automáticos**: Gera caminhos organizados por data com identificadores `nanoid` (ex: `2026/10/clx123_foto.webp`), evitando sobrescritas acidentais.
-- **Suporte a Pastas e Nomes Originais**: Envie o campo `folder` ou ative `preserveName`.
-- **Arquivos Protegidos (Privados)**: Suporte a upload com `private=true`. Arquivos privados só podem ser baixados enviando a API Key em `/private/:key`.
-- **Filtro de Tipos (MIME Types)**: Permite configurar formatos aceitos (padrão: `image/*,application/pdf` ou `*` para todos).
-- **Listagem e Deleção**: Endpoints para listar arquivos com paginação e excluir arquivos do bucket.
+- ⚡ **Deploy em 1 Clique**: Botão oficial Cloudflare Workers Deploy ou configuração via `pnpm run setup`.
+- 💰 **Zero Egress Fee**: O Cloudflare R2 não cobra taxa de transferência de saída (bandwidth de download gratuita).
+- 🔐 **URLs Assinadas com HMAC-SHA256**: Entregue links temporários para arquivos privados (`storage.getSignedUrl(key, { expiresInSeconds })`) sem expor sua API Key mestra.
+- 🗑️ **Deleção em Lote (Batch Delete)**: Exclua dezenas ou centenas de arquivos de uma só vez via API ou com seleção múltipla na dashboard.
+- 📄 **Paginação Real por Cursor**: Navegue por milhares de arquivos com cursor nativo do R2 e botão "Carregar mais".
+- 🌐 **CORS Flexível para Apps Externos**: Configure `ALLOWED_ORIGINS` para permitir uploads diretos a partir do seu app na Vercel ou VPS com segurança.
+- 🖥️ **Dashboard Web Integrada**: Interface em **React 19 + Tailwind CSS** servida diretamente pela Cloudflare na rota raiz `/` com pré-visualizações, métricas e snippets prontos.
+- 📦 **Snippet estilo shadcn (Zero Dependências NPM)**: Copie [`snippets/storage.ts`](snippets/storage.ts) para o seu app (`lib/storage.ts`) e use TypeScript com Fetch nativo sem instalar bibliotecas pesadas de terceiros.
 
 ---
 
@@ -237,11 +239,49 @@ Remove um arquivo do bucket R2.
 
 ---
 
-### 5. Acesso a Arquivos Privados
-Se você realizou o upload com `private=true`, o arquivo fica protegido e não pode ser acessado publicamente. Para visualizá-lo ou baixá-lo:
-- **Método**: `GET`
-- **Rota**: `/private/:key+`
-- **Headers**: `X-API-Key: <sua-api-key>` ou `Authorization: Bearer <sua-api-key>` (ou query param `?apiKey=<sua-api-key>`)
+### 5. Acesso a Arquivos Privados & URLs Assinadas
+Se você realizou o upload com `private=true`, o arquivo fica protegido e não pode ser acessado publicamente.
+
+Existem duas maneiras seguras de acessar:
+1. **Via URL Assinada (Recomendado para Usuários Finais)**:
+   - Gere uma URL temporária via `POST /api/signed-url` (com token HMAC e expiração).
+   - O link retornado tem o formato `https://sua-api.com/private/arquivo.pdf?token=...&expires=1740000000` e pode ser aberto no navegador sem expor sua API Key.
+2. **Via API Key (Para Seus Próprios Servidores)**:
+   - Requisição direta `GET /private/:key+` enviando o header `X-API-Key: <sua-chave>`.
+
+---
+
+### 6. Gerar URL Assinada (Signed URL)
+Gera uma URL temporária com assinatura criptográfica HMAC-SHA256 para permitir que clientes baixem um arquivo privado.
+
+- **Método**: `POST`
+- **Rota**: `/api/signed-url`
+- **Headers**: `X-API-Key: <sua-api-key>`, `Content-Type: application/json`
+- **Body**:
+  ```json
+  {
+    "key": "private/faturas/2026/recibo.pdf",
+    "expiresInSeconds": 3600
+  }
+  ```
+
+---
+
+### 7. Deleção em Lote (Batch Delete)
+Remove dezenas ou centenas de arquivos do bucket R2 em uma única chamada.
+
+- **Método**: `POST`
+- **Rota**: `/api/files/batch-delete`
+- **Headers**: `X-API-Key: <sua-api-key>`, `Content-Type: application/json`
+- **Body**:
+  ```json
+  {
+    "keys": [
+      "avatars/2026/10/foto1.png",
+      "avatars/2026/10/foto2.png"
+    ]
+  }
+  ```
 
 ---
 
@@ -267,11 +307,17 @@ const { url, key } = await storage.upload(file, {
   preserveName: true,
 });
 
-// 2. Listar arquivos
-const { objects } = await storage.list({ prefix: 'avatars/' });
+// 2. Gerar Signed URL para download seguro de arquivo privado
+const { url: signedUrl } = await storage.getSignedUrl('private/faturas/doc.pdf', {
+  expiresInSeconds: 3600, // válido por 1 hora
+});
 
-// 3. Deletar arquivo
+// 3. Listar arquivos com paginação
+const { objects, cursor, truncated } = await storage.list({ limit: 50 });
+
+// 4. Deleção individual ou em lote
 await storage.delete('avatars/2026/10/clx_avatar.png');
+await storage.deleteMany(['foto1.png', 'foto2.png']);
 ```
 
 ---

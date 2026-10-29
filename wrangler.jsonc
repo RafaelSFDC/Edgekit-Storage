@@ -32,6 +32,11 @@
     "MAX_FILE_SIZE_MB": "25",
 
     // Permite servir arquivos via Worker (/f/:key) como fallback caso não utilize Custom Domain
-    "ENABLE_WORKER_FALLBACK_STREAM": "true"
+    "ENABLE_WORKER_FALLBACK_STREAM": "true",
+
+    // Domínios externos permitidos para CORS (separados por vírgula).
+    // Deixe vazio para permitir requisições diretas de qualquer origem.
+    // Exemplo: "http://localhost:3000,https://meuapp.vercel.app"
+    "ALLOWED_ORIGINS": ""
   }
 }

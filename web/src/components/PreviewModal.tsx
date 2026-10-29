@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Copy, Check, ExternalLink, FileText, Image as ImageIcon, Calendar, HardDrive, Hash, Code } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Copy, Check, ExternalLink, FileText, Image as ImageIcon, Calendar, Database, Hash, Code2, Lock, Key, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -11,8 +11,9 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { Separator } from './ui/separator';
 import { formatBytes, formatDate } from '../lib/utils';
-import type { StorageObject } from '../types';
+import type { StorageObject, SignedUrlResponse } from '../types';
 
 interface PreviewModalProps {
   object: StorageObject | null;
@@ -21,6 +22,14 @@ interface PreviewModalProps {
 
 export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) => {
   const [copiedType, setCopiedType] = useState<string | null>(null);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [isGeneratingSigned, setIsGeneratingSigned] = useState(false);
+
+  // Reset state whenever object changes
+  useEffect(() => {
+    setSignedUrl(null);
+    setCopiedType(null);
+  }, [object?.key]);
 
   if (!object) return null;
 
@@ -33,27 +42,51 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
     setTimeout(() => setCopiedType(null), 2000);
   };
 
+  const handleGenerateSignedUrl = async () => {
+    setIsGeneratingSigned(true);
+    try {
+      const res = await fetch('/api/signed-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ key: object.key, expiresInSeconds: 3600 }),
+      });
+      const json: SignedUrlResponse = await res.json();
+      if (res.ok && json.success) {
+        setSignedUrl(json.data.url);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsGeneratingSigned(false);
+    }
+  };
+
+  const activeDisplayUrl = signedUrl || object.url;
+
   const snippets = {
-    url: object.url,
-    html: `<img src="${object.url}" alt="${fileName}" loading="lazy" />`,
-    markdown: `![${fileName}](${object.url})`,
-    nextjs: `<Image src="${object.url}" alt="${fileName}" width={800} height={600} />`,
+    url: activeDisplayUrl,
+    html: `<img src="${activeDisplayUrl}" alt="${fileName}" loading="lazy" />`,
+    markdown: `![${fileName}](${activeDisplayUrl})`,
+    nextjs: `<Image src="${activeDisplayUrl}" alt="${fileName}" width={800} height={600} />`,
   };
 
   return (
     <Dialog open={Boolean(object)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl p-0 overflow-hidden">
         {/* Header */}
-        <DialogHeader className="p-5 pb-3 border-b border-zinc-800 bg-zinc-950/60">
+        <DialogHeader className="p-6 pb-4 border-b border-border bg-card">
           <div className="flex items-center gap-2.5 min-w-0">
-            {isImage ? (
-              <ImageIcon className="w-5 h-5 text-orange-400 shrink-0" />
-            ) : (
-              <FileText className="w-5 h-5 text-amber-400 shrink-0" />
-            )}
-            <div>
-              <DialogTitle className="truncate max-w-lg">{fileName}</DialogTitle>
-              <DialogDescription className="font-mono text-[11px] truncate mt-0.5">
+            <div className="h-8 w-8 rounded-md bg-secondary flex items-center justify-center text-foreground shrink-0">
+              {isImage ? (
+                <ImageIcon className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <DialogTitle className="truncate text-base">{fileName}</DialogTitle>
+              <DialogDescription className="font-mono text-xs truncate mt-0.5">
                 {object.key}
               </DialogDescription>
             </div>
@@ -63,17 +96,17 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
         {/* Content Body */}
         <div className="grid grid-cols-1 md:grid-cols-2 max-h-[75vh] overflow-y-auto">
           {/* Left Preview */}
-          <div className="p-6 bg-zinc-950/80 flex items-center justify-center border-b md:border-b-0 md:border-r border-zinc-800/80">
+          <div className="p-6 bg-muted/20 flex items-center justify-center border-b md:border-b-0 md:border-r border-border">
             {isImage ? (
               <img
                 src={object.url}
                 alt={fileName}
-                className="max-h-[350px] w-auto max-w-full rounded-xl object-contain shadow-2xl border border-zinc-800"
+                className="max-h-[350px] w-auto max-w-full rounded-md object-contain border border-border shadow-sm"
               />
             ) : (
-              <div className="py-16 text-center">
-                <FileText className="w-16 h-16 text-zinc-600 mx-auto mb-3" />
-                <Badge variant="secondary" className="mb-3">
+              <div className="py-16 text-center space-y-3">
+                <FileText className="h-16 w-16 text-muted-foreground mx-auto stroke-[1.25]" />
+                <Badge variant="secondary" className="font-normal text-xs">
                   {object.mimeType}
                 </Badge>
                 <div>
@@ -81,8 +114,10 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
                     variant="outline"
                     size="sm"
                     onClick={() => window.open(object.url, '_blank')}
+                    className="gap-1.5"
                   >
-                    <ExternalLink className="w-4 h-4 mr-1.5" /> Abrir Documento
+                    <ExternalLink className="h-4 w-4" />
+                    <span>Visualizar Arquivo</span>
                   </Button>
                 </div>
               </div>
@@ -93,67 +128,107 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
           <div className="p-6 space-y-5 flex flex-col justify-between">
             <div className="space-y-4">
               {/* Metadata Items */}
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-zinc-950/60 border border-zinc-800 rounded-xl">
-                    <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                      <HardDrive className="w-3.5 h-3.5 text-orange-400" /> Tamanho
-                    </span>
-                    <p className="text-xs font-semibold text-white mt-1">
-                      {formatBytes(object.size)}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-zinc-950/60 border border-zinc-800 rounded-xl">
-                    <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-amber-400" /> Data de Envio
-                    </span>
-                    <p className="text-xs font-semibold text-white mt-1">
-                      {formatDate(object.uploadedAt)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-zinc-950/60 border border-zinc-800 rounded-xl">
-                  <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                    <Hash className="w-3.5 h-3.5 text-blue-400" /> MIME Type & ETag
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 border border-border rounded-lg bg-card space-y-1">
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Database className="h-3 w-3" /> Tamanho
                   </span>
-                  <p className="text-xs font-mono text-zinc-300 mt-1">
-                    {object.mimeType} {object.etag ? `• ${object.etag.slice(0, 14)}...` : ''}
+                  <p className="text-sm font-semibold text-foreground">
+                    {formatBytes(object.size)}
+                  </p>
+                </div>
+                <div className="p-3 border border-border rounded-lg bg-card space-y-1">
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="h-3 w-3" /> Data de Envio
+                  </span>
+                  <p className="text-sm font-semibold text-foreground">
+                    {formatDate(object.uploadedAt)}
                   </p>
                 </div>
               </div>
 
+              <div className="p-3 border border-border rounded-lg bg-card space-y-1">
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Hash className="h-3 w-3" /> Identificação & MIME
+                </span>
+                <p className="text-xs font-mono text-muted-foreground">
+                  {object.mimeType} {object.etag ? `• ${object.etag.slice(0, 16)}...` : ''}
+                </p>
+              </div>
+
+              {/* Private Signed URL Box */}
+              {object.isPrivate && (
+                <div className="p-3 border border-amber-500/30 rounded-lg bg-amber-500/5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-amber-500">
+                      <Lock className="h-3.5 w-3.5" />
+                      <span>Arquivo Privado Protegido</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateSignedUrl}
+                      disabled={isGeneratingSigned}
+                      className="h-7 text-[11px] gap-1 border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
+                    >
+                      {isGeneratingSigned ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Key className="h-3 w-3" />
+                      )}
+                      <span>{signedUrl ? 'Regerar Token (1h)' : 'Gerar URL Assinada (1h)'}</span>
+                    </Button>
+                  </div>
+                  {signedUrl ? (
+                    <div className="space-y-1">
+                      <p className="text-[11px] text-muted-foreground break-all font-mono bg-background/60 p-2 rounded border border-border select-all">
+                        {signedUrl}
+                      </p>
+                      <span className="text-[10px] text-emerald-500 font-medium flex items-center gap-1">
+                        <Check className="h-3 w-3" /> URL assinada ativa válida por 1 hora
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      Arquivos privados necessitam de uma assinatura temporária (Signed URL) para acesso externo seguro sem vazar a API Key.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <Separator />
+
               {/* Code Snippets Section */}
-              <div className="pt-2">
-                <div className="flex items-center gap-1.5 mb-2 text-xs font-semibold text-zinc-300">
-                  <Code className="w-4 h-4 text-orange-400" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <Code2 className="h-3.5 w-3.5" />
                   <span>Snippets de Integração</span>
                 </div>
 
                 <Tabs defaultValue="url">
                   <TabsList className="w-full grid grid-cols-4">
-                    <TabsTrigger value="url">URL</TabsTrigger>
-                    <TabsTrigger value="html">HTML</TabsTrigger>
-                    <TabsTrigger value="markdown">MD</TabsTrigger>
-                    <TabsTrigger value="nextjs">Next.js</TabsTrigger>
+                    <TabsTrigger value="url" className="text-xs">URL</TabsTrigger>
+                    <TabsTrigger value="html" className="text-xs">HTML</TabsTrigger>
+                    <TabsTrigger value="markdown" className="text-xs">MD</TabsTrigger>
+                    <TabsTrigger value="nextjs" className="text-xs">Next.js</TabsTrigger>
                   </TabsList>
 
                   {(['url', 'html', 'markdown', 'nextjs'] as const).map((tab) => (
                     <TabsContent key={tab} value={tab} className="relative mt-2">
-                      <pre className="p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-zinc-300 overflow-x-auto select-all pr-10">
+                      <pre className="p-3 bg-muted/40 border border-border rounded-md text-xs font-mono text-foreground overflow-x-auto select-all pr-10">
                         {snippets[tab]}
                       </pre>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => handleCopy(snippets[tab], tab)}
-                        className="absolute right-2 top-2 h-7 w-7 text-zinc-400 hover:text-white"
+                        className="absolute right-1.5 top-1.5 h-7 w-7 text-muted-foreground hover:text-foreground"
                         title="Copiar snippet"
                       >
                         {copiedType === tab ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <Check className="h-3.5 w-3.5 text-emerald-500" />
                         ) : (
-                          <Copy className="w-3.5 h-3.5" />
+                          <Copy className="h-3.5 w-3.5" />
                         )}
                       </Button>
                     </TabsContent>
@@ -163,31 +238,31 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
             </div>
 
             {/* Bottom Actions Footer */}
-            <DialogFooter className="pt-4 border-t border-zinc-800 gap-2">
+            <DialogFooter className="pt-4 border-t border-border flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.open(object.url, '_blank')}
+                onClick={() => window.open(activeDisplayUrl, '_blank')}
                 className="gap-1.5"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
+                <ExternalLink className="h-3.5 w-3.5" />
                 <span>Abrir</span>
               </Button>
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => handleCopy(object.url, 'url-main')}
-                className="flex-1"
+                onClick={() => handleCopy(activeDisplayUrl, 'url-main')}
+                className="flex-1 gap-1.5"
               >
                 {copiedType === 'url-main' ? (
                   <>
-                    <Check className="w-4 h-4 text-white" />
-                    <span>URL Copiada!</span>
+                    <Check className="h-3.5 w-3.5" />
+                    <span>{signedUrl ? 'URL Assinada Copiada!' : 'URL Copiada!'}</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-4 h-4" />
-                    <span>Copiar URL Pública</span>
+                    <Copy className="h-3.5 w-3.5" />
+                    <span>{signedUrl ? 'Copiar URL Assinada' : object.isPrivate ? 'Copiar Link Privado' : 'Copiar URL Pública'}</span>
                   </>
                 )}
               </Button>

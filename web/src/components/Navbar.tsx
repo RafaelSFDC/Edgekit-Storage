@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cloud, ShieldCheck, LogOut, RefreshCw, Code, ExternalLink, Key } from 'lucide-react';
+import { HardDrive, LogOut, RotateCw, Code2, ExternalLink, KeyRound } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
@@ -22,43 +22,39 @@ export const Navbar: React.FC<NavbarProps> = ({
   isLoading,
 }) => {
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 p-0.5 shadow-lg shadow-orange-500/20">
-            <div className="w-full h-full bg-zinc-950 rounded-[10px] flex items-center justify-center">
-              <Cloud className="w-5 h-5 text-orange-500" />
-            </div>
+          <div className="h-8 w-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
+            <HardDrive className="h-4 w-4" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-lg tracking-tight text-white">
-                Cloudflare Storage
-              </span>
-              <Badge variant="default">R2 Bucket</Badge>
-            </div>
-            <p className="text-xs text-zinc-400 hidden sm:block">
-              Open-Source Edge Media Backend
-            </p>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm tracking-tight text-foreground">
+              EdgeKit Storage
+            </span>
+            <Badge variant="secondary" className="text-[11px] font-normal hidden sm:inline-flex">
+              Cloudflare R2
+            </Badge>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
+        <div className="flex items-center gap-2">
           {/* Refresh files */}
           <Tooltip>
             <TooltipTrigger render={
               <Button
                 variant="outline"
                 size="icon"
+                className="h-8 w-8"
                 onClick={onRefresh}
                 disabled={isLoading || !isAuthenticated}
               />
             }>
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-orange-400' : ''}`} />
+              <RotateCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             </TooltipTrigger>
-            <TooltipContent>Recarregar arquivos do R2</TooltipContent>
+            <TooltipContent>Recarregar arquivos</TooltipContent>
           </Tooltip>
 
           {/* Snippet Button */}
@@ -66,18 +62,35 @@ export const Navbar: React.FC<NavbarProps> = ({
             variant="outline"
             size="sm"
             onClick={onOpenSnippetModal}
+            className="h-8 text-xs gap-1.5"
           >
-            <Code className="w-3.5 h-3.5 text-orange-400" />
+            <Code2 className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="hidden sm:inline">Snippet do Cliente</span>
             <span className="sm:hidden">Snippet</span>
           </Button>
 
-          {/* Auth State Button */}
+          {/* API Docs Button */}
+          <Tooltip>
+            <TooltipTrigger render={
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs text-muted-foreground hover:text-foreground hidden md:inline-flex gap-1"
+                onClick={() => window.open('/api', '_blank')}
+              />
+            }>
+              <span>API</span>
+              <ExternalLink className="h-3 w-3" />
+            </TooltipTrigger>
+            <TooltipContent>Documentação da API</TooltipContent>
+          </Tooltip>
+
+          {/* Auth State */}
           {isAuthenticated ? (
-            <div className="flex items-center gap-1.5">
-              <Badge variant="success" className="hidden sm:inline-flex py-1 px-2.5">
-                <ShieldCheck className="w-3 h-3 mr-1 text-emerald-400" />
-                <span>HttpOnly Conectado</span>
+            <div className="flex items-center gap-1.5 ml-1">
+              <Badge variant="outline" className="hidden sm:inline-flex py-1 px-2.5 text-xs font-normal gap-1.5 border-border">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span>HttpOnly Ativo</span>
               </Badge>
 
               <Tooltip>
@@ -86,10 +99,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                     variant="ghost"
                     size="icon"
                     onClick={onLogout}
-                    className="hover:text-red-400 hover:bg-red-950/30"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   />
                 }>
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="h-4 w-4" />
                 </TooltipTrigger>
                 <TooltipContent>Desconectar sessão</TooltipContent>
               </Tooltip>
@@ -99,26 +112,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               variant="default"
               size="sm"
               onClick={onOpenKeyModal}
+              className="h-8 text-xs gap-1.5 ml-1"
             >
-              <Key className="w-3.5 h-3.5" />
+              <KeyRound className="h-3.5 w-3.5" />
               <span>Conectar API Key</span>
             </Button>
           )}
-
-          <Tooltip>
-            <TooltipTrigger render={
-              <Button
-                variant="outline"
-                size="sm"
-                className="hidden md:inline-flex"
-                onClick={() => window.open('/api', '_blank')}
-              />
-            }>
-              <span>API</span>
-              <ExternalLink className="w-3 h-3 text-zinc-500" />
-            </TooltipTrigger>
-            <TooltipContent>Documentação da API</TooltipContent>
-          </Tooltip>
         </div>
       </div>
     </header>

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { AppContext } from '../env';
 import { apiKeyAuth } from '../middleware/auth';
 import { apiError, apiSuccess } from '../utils/response';
-import { resolveFileUrl } from '../utils/keys';
+import { resolveFileUrl, verifySignedToken, buildSignedUrl } from '../utils/keys';
 
 export const filesRouter = new Hono<AppContext>();
 
@@ -59,43 +59,73 @@ filesRouter.get('/f/:key{.*}', async (c) => {
 
 // ==========================================
 // 2. PROTECTED STREAM: GET /private/:key+
+// Supports both signed URL tokens (?token=...&expires=...) and API key authentication.
 // ==========================================
-filesRouter.get('/private/:key{.*}', apiKeyAuth(), async (c) => {
-  const key = c.req.param('key');
-  if (!key) {
-    return apiError(c, 'File key is required', 400);
-  }
+filesRouter.get(
+  '/private/:key{.*}',
+  async (c, next) => {
+    const token = c.req.query('token');
+    const expires = c.req.query('expires');
 
-  // Auto-prepend private/ if not present
-  const fullKey = key.startsWith('private/') ? key : `private/${key}`;
+    if (token && expires) {
+      const key = c.req.param('key') || '';
+      const fullKey = key.startsWith('private/') ? key : `private/${key}`;
+      const expiresNum = Number(expires);
 
-  const object = await c.env.BUCKET.get(fullKey, {
-    onlyIf: c.req.raw.headers,
-    range: c.req.raw.headers,
-  });
+      if (!isNaN(expiresNum)) {
+        const isValid =
+          (await verifySignedToken(fullKey, c.env.API_KEY, token, expiresNum)) ||
+          (await verifySignedToken(key, c.env.API_KEY, token, expiresNum));
 
-  if (!object) {
-    return apiError(c, 'Private file not found', 404);
-  }
+        if (isValid) {
+          // Token is valid and unexpired; allow access without API key
+          return next();
+        }
+      }
 
-  if (!('body' in object)) {
-    return new Response(null, {
-      status: 304,
-      headers: {
-        etag: object.httpEtag,
-      },
+      return apiError(c, 'Forbidden: Invalid or expired signed URL', 403);
+    }
+
+    // Fall back to standard API key authentication (headers or cookie)
+    return apiKeyAuth()(c, next);
+  },
+  async (c) => {
+    const key = c.req.param('key');
+    if (!key) {
+      return apiError(c, 'File key is required', 400);
+    }
+
+    // Auto-prepend private/ if not present
+    const fullKey = key.startsWith('private/') ? key : `private/${key}`;
+
+    const object = await c.env.BUCKET.get(fullKey, {
+      onlyIf: c.req.raw.headers,
+      range: c.req.raw.headers,
+    });
+
+    if (!object) {
+      return apiError(c, 'Private file not found', 404);
+    }
+
+    if (!('body' in object)) {
+      return new Response(null, {
+        status: 304,
+        headers: {
+          etag: object.httpEtag,
+        },
+      });
+    }
+
+    const headers = new Headers();
+    object.writeHttpMetadata(headers);
+    headers.set('etag', object.httpEtag);
+    headers.set('Cache-Control', 'private, no-cache, no-store');
+
+    return new Response(object.body, {
+      headers,
     });
   }
-
-  const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set('etag', object.httpEtag);
-  headers.set('Cache-Control', 'private, no-cache, no-store');
-
-  return new Response(object.body, {
-    headers,
-  });
-});
+);
 
 // ==========================================
 // 3. LIST FILES: GET /api/files
@@ -184,5 +214,74 @@ filesRouter.delete('/api/files/:key{.*}', apiKeyAuth(), async (c) => {
   } catch (err) {
     console.error(`[Delete Error] Failed deleting key ${key}:`, err);
     return apiError(c, 'Failed to delete file from R2 storage', 500);
+  }
+});
+
+// ==========================================
+// 6. BATCH DELETE: POST /api/files/batch-delete
+// ==========================================
+filesRouter.post('/api/files/batch-delete', apiKeyAuth(), async (c) => {
+  let body: { keys?: string[] };
+  try {
+    body = await c.req.json();
+  } catch {
+    return apiError(c, 'Invalid JSON body. Expected { keys: string[] }', 400);
+  }
+
+  const { keys } = body;
+  if (!Array.isArray(keys) || keys.length === 0) {
+    return apiError(c, 'Field "keys" must be a non-empty array of file keys', 400);
+  }
+
+  const validKeys = keys.filter((k) => typeof k === 'string' && k.trim() !== '');
+  if (validKeys.length === 0) {
+    return apiError(c, 'No valid file keys provided', 400);
+  }
+
+  try {
+    await c.env.BUCKET.delete(validKeys);
+    return apiSuccess(c, {
+      message: 'Files deleted successfully',
+      count: validKeys.length,
+      keys: validKeys,
+    });
+  } catch (err) {
+    console.error('[Batch Delete Error]:', err);
+    return apiError(c, 'Failed to delete files from R2 storage', 500);
+  }
+});
+
+// ==========================================
+// 7. GENERATE SIGNED URL: POST /api/signed-url
+// ==========================================
+filesRouter.post('/api/signed-url', apiKeyAuth(), async (c) => {
+  let body: { key?: string; expiresInSeconds?: number };
+  try {
+    body = await c.req.json();
+  } catch {
+    return apiError(c, 'Invalid JSON body. Expected { key: string, expiresInSeconds?: number }', 400);
+  }
+
+  const { key, expiresInSeconds = 3600 } = body;
+  if (!key || typeof key !== 'string' || key.trim() === '') {
+    return apiError(c, 'Field "key" is required', 400);
+  }
+
+  const duration = Math.max(10, Math.min(Number(expiresInSeconds) || 3600, 604800)); // between 10s and 7 days
+  const cleanKey = key.trim().replace(/^\/+/, '');
+  const fullKey = cleanKey.startsWith('private/') ? cleanKey : `private/${cleanKey}`;
+
+  try {
+    const signedData = await buildSignedUrl(fullKey, c.env.API_KEY, c.req.url, duration);
+
+    return apiSuccess(c, {
+      url: signedData.url,
+      key: fullKey,
+      expiresAt: signedData.expiresAt,
+      expiresInSeconds: duration,
+    });
+  } catch (err) {
+    console.error('[Signed URL Error]:', err);
+    return apiError(c, 'Failed to generate signed URL', 500);
   }
 });

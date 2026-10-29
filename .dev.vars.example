@@ -10,3 +10,9 @@ ALLOWED_MIME_TYPES=image/*,application/pdf
 
 # Limite de tamanho em Megabytes
 MAX_FILE_SIZE_MB=25
+
+# Streaming via Worker ativado
+ENABLE_WORKER_FALLBACK_STREAM=true
+
+# Domínios permitidos no CORS (separados por vírgula)
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173

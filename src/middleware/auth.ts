@@ -2,6 +2,7 @@ import type { MiddlewareHandler } from 'hono';
 import { getCookie } from 'hono/cookie';
 import type { AppContext } from '../env';
 import { apiError } from '../utils/response';
+import { timingSafeEqualStr } from '../utils/keys';
 
 export const AUTH_COOKIE_NAME = 'cf_storage_session';
 
@@ -26,7 +27,7 @@ export function apiKeyAuth(): MiddlewareHandler<AppContext> {
 
     // 1. Check X-API-Key header (standard for external backends)
     const xApiKey = c.req.header('X-API-Key');
-    if (xApiKey && xApiKey === configuredKey) {
+    if (xApiKey && timingSafeEqualStr(xApiKey, configuredKey)) {
       return next();
     }
 
@@ -34,20 +35,20 @@ export function apiKeyAuth(): MiddlewareHandler<AppContext> {
     const authHeader = c.req.header('Authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.slice(7).trim();
-      if (token === configuredKey) {
+      if (timingSafeEqualStr(token, configuredKey)) {
         return next();
       }
     }
 
     // 3. Check HttpOnly session cookie (for Dashboard)
     const sessionCookie = getCookie(c, AUTH_COOKIE_NAME);
-    if (sessionCookie && sessionCookie === configuredKey) {
+    if (sessionCookie && timingSafeEqualStr(sessionCookie, configuredKey)) {
       return next();
     }
 
     // 4. Check query parameter ?apiKey=<token>
     const queryKey = c.req.query('apiKey');
-    if (queryKey && queryKey === configuredKey) {
+    if (queryKey && timingSafeEqualStr(queryKey, configuredKey)) {
       return next();
     }
 
