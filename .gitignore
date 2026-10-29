@@ -1,9 +1,15 @@
 node_modules/
+.pnpm-store/
 .wrangler/
-.dev.vars
-.env
+apps/*/.wrangler/
+apps/*/dist/
 dist/
 dist-web/
+.dev.vars
+.dev.vars.*
+apps/*/.dev.vars
+.env
+.env.*
 *.log
 .DS_Store
 Thumbs.db

@@ -1,59 +1,35 @@
 {
   "name": "edgekit-storage",
   "version": "1.0.0",
-  "description": "Lightweight open-source image and file storage backend for Cloudflare Workers & R2 — EdgeKit Storage",
-  "main": "src/index.ts",
   "type": "module",
+  "private": true,
+  "description": "Lightweight open-source image and file storage backend for Cloudflare Workers & R2 — EdgeKit Storage",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "concurrently -n \"api,web\" -c \"magenta,cyan\" \"pnpm --filter @edgekit/api dev\" \"pnpm --filter @edgekit/web dev\"",
+    "dev:api": "pnpm --filter @edgekit/api dev",
+    "dev:web": "pnpm --filter @edgekit/web dev",
     "setup": "node scripts/setup.mjs",
-    "dev:web": "vite --config web/vite.config.ts",
-    "build:web": "vite build --config web/vite.config.ts",
-    "build": "pnpm build:web && tsc --noEmit",
-    "deploy": "pnpm build:web && wrangler deploy",
-    "typecheck": "tsc --noEmit && tsc --project web/tsconfig.json --noEmit",
-    "test": "node test-e2e.mjs",
-    "cf-typegen": "wrangler types"
+    "build:web": "pnpm --filter @edgekit/web build",
+    "build:api": "pnpm --filter @edgekit/api build",
+    "build": "pnpm --filter @edgekit/web build && pnpm --filter @edgekit/api build",
+    "deploy": "pnpm --filter @edgekit/web build && pnpm --filter @edgekit/api deploy",
+    "cf-typegen": "pnpm --filter @edgekit/api cf-typegen",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
+    "test:api": "pnpm --filter @edgekit/api test",
+    "test:web": "pnpm --filter @edgekit/web test"
   },
   "keywords": [
     "cloudflare",
     "r2",
     "workers",
-    "hono",
     "storage",
-    "image-upload",
-    "cdn"
+    "hono",
+    "edgekit"
   ],
-  "homepage": "https://github.com/RafaelSFDC/Edgekit-Storage#readme",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/RafaelSFDC/Edgekit-Storage.git"
-  },
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "@base-ui-components/react": "1.0.0-rc.0",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "hono": "^4.13.14",
-    "lucide-react": "^1.63.0",
-    "nanoid": "^6.0.2",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "tailwind-merge": "^3.7.0"
-  },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20261028.1",
-    "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^26.6.5",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.2",
-    "autoprefixer": "^10.6.2",
-    "postcss": "^8.5.32",
-    "tailwindcss": "^4.3.3",
-    "typescript": "^7.0.2",
-    "vite": "^8.3.5",
-    "wrangler": "^4.154.0"
+    "concurrently": "^9.1.2"
   }
 }
