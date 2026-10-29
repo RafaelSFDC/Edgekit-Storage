@@ -3,6 +3,8 @@ import { HardDrive, LogOut, RotateCw, Code2, ExternalLink, KeyRound } from 'luci
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
+import { LanguageSwitcher } from './LanguageSwitcher';
+import { useI18n } from '../i18n';
 
 interface NavbarProps {
   isAuthenticated: boolean;
@@ -21,6 +23,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onRefresh,
   isLoading,
 }) => {
+  const { t } = useI18n();
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
@@ -34,13 +38,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               EdgeKit Storage
             </span>
             <Badge variant="secondary" className="text-[11px] font-normal hidden sm:inline-flex">
-              Cloudflare R2
+              {t.navbar.brandSubtitle}
             </Badge>
           </div>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+          {/* Language Switcher */}
+          <LanguageSwitcher />
+
           {/* Refresh files */}
           <Tooltip>
             <TooltipTrigger render={
@@ -54,7 +61,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }>
               <RotateCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             </TooltipTrigger>
-            <TooltipContent>Recarregar arquivos</TooltipContent>
+            <TooltipContent>{t.navbar.refreshTooltip}</TooltipContent>
           </Tooltip>
 
           {/* Snippet Button */}
@@ -65,8 +72,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="h-8 text-xs gap-1.5"
           >
             <Code2 className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="hidden sm:inline">Snippet do Cliente</span>
-            <span className="sm:hidden">Snippet</span>
+            <span className="hidden sm:inline">{t.navbar.clientSnippet}</span>
+            <span className="sm:hidden">{t.navbar.clientSnippetShort}</span>
           </Button>
 
           {/* API Docs Button */}
@@ -82,7 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>API</span>
               <ExternalLink className="h-3 w-3" />
             </TooltipTrigger>
-            <TooltipContent>Documentação da API</TooltipContent>
+            <TooltipContent>{t.navbar.apiDocsTooltip}</TooltipContent>
           </Tooltip>
 
           {/* Auth State */}
@@ -90,7 +97,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex items-center gap-1.5 ml-1">
               <Badge variant="outline" className="hidden sm:inline-flex py-1 px-2.5 text-xs font-normal gap-1.5 border-border">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span>HttpOnly Ativo</span>
+                <span>{t.navbar.httpOnlyActive}</span>
               </Badge>
 
               <Tooltip>
@@ -104,7 +111,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }>
                   <LogOut className="h-4 w-4" />
                 </TooltipTrigger>
-                <TooltipContent>Desconectar sessão</TooltipContent>
+                <TooltipContent>{t.navbar.logoutTooltip}</TooltipContent>
               </Tooltip>
             </div>
           ) : (
@@ -115,7 +122,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="h-8 text-xs gap-1.5 ml-1"
             >
               <KeyRound className="h-3.5 w-3.5" />
-              <span>Conectar API Key</span>
+              <span>{t.navbar.connectApiKey}</span>
             </Button>
           )}
         </div>

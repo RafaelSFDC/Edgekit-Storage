@@ -1,11 +1,16 @@
-# 🔌 Guia de Integração Multi-Linguagem — EdgeKit Storage
+# 🔌 Multi-Language Integration Guide — EdgeKit Storage
 
-O **EdgeKit Storage** foi projetado para atuar como um microsserviço de upload e armazenamento de mídia agnóstico a linguagens. Se você já possui uma aplicação rodando em **Vercel, AWS, VPS, Fly.io ou Hetzner**, pode utilizá-lo sem instalar SDKs pesados.
+<p align="left">
+  <b>🇺🇸 English</b> •
+  <a href="integrations.pt-BR.md">🇧🇷 Português (Brasil)</a>
+</p>
+
+**EdgeKit Storage** is designed to act as a language-agnostic upload and media storage microservice. If you already have an application running on **Vercel, AWS, VPS, Fly.io, or Hetzner**, you can integrate with it without installing heavy third-party SDKs.
 
 ---
 
-## 📑 Índice
-- [Visão Geral da API REST](#-visão-geral-da-api-rest)
+## 📑 Table of Contents
+- [REST API Overview](#-rest-api-overview)
 - [1. TypeScript & Next.js (App Router / Server Actions)](#1-typescript--nextjs)
 - [2. Python (FastAPI / Django / Flask)](#2-python-fastapi--django--flask)
 - [3. PHP & Laravel](#3-php--laravel)
@@ -13,33 +18,33 @@ O **EdgeKit Storage** foi projetado para atuar como um microsserviço de upload 
 - [5. C# (.NET 8+ / ASP.NET Core)](#5-c-net-8--aspnet-core)
 - [6. Java (Spring Boot / Java 17+)](#6-java-spring-boot--java-17)
 - [7. Rust (Axum / Actix-web)](#7-rust-axum--actix-web)
-- [8. cURL & Linha de Comando](#8-curl--linha-de-comando)
-- [🔒 Melhores Práticas com Arquivos Privados](#-melhores-práticas-com-arquivos-privados)
+- [8. cURL & Command Line](#8-curl--command-line)
+- [🔒 Private Files Best Practices](#-private-files-best-practices)
 
 ---
 
-## 📡 Visão Geral da API REST
+## 📡 REST API Overview
 
-Todas as requisições autenticadas exigem o cabeçalho `X-API-Key` ou `Authorization: Bearer <key>`.
+All authenticated requests require the `X-API-Key` or `Authorization: Bearer <key>` header.
 
-| Método | Rota | Descrição | Autenticação |
+| Method | Route | Description | Auth |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/upload` | Envia um arquivo (`multipart/form-data`) | `X-API-Key` |
-| `POST` | `/api/signed-url` | Gera URL temporária assinada com HMAC | `X-API-Key` |
-| `GET` | `/api/files` | Lista arquivos com paginação por `cursor` | `X-API-Key` |
-| `GET` | `/api/files/:key/meta` | Retorna metadados do arquivo (HEAD) | `X-API-Key` |
-| `DELETE` | `/api/files/:key` | Exclui um arquivo do bucket | `X-API-Key` |
-| `POST` | `/api/files/batch-delete` | Exclui múltiplos arquivos em lote | `X-API-Key` |
-| `GET` | `/f/:key` | Acesso público direto ao arquivo | *Pública (CDN)* |
-| `GET` | `/private/:key` | Acesso a arquivo privado | `X-API-Key` ou `?token=&expires=` |
+| `POST` | `/upload` | Upload a file (`multipart/form-data`) | `X-API-Key` |
+| `POST` | `/api/signed-url` | Generate temporary HMAC signed URL | `X-API-Key` |
+| `GET` | `/api/files` | List files with `cursor` pagination | `X-API-Key` |
+| `GET` | `/api/files/:key/meta` | Get file metadata (HEAD) | `X-API-Key` |
+| `DELETE` | `/api/files/:key` | Delete a single file | `X-API-Key` |
+| `POST` | `/api/files/batch-delete` | Delete multiple files in batch | `X-API-Key` |
+| `GET` | `/f/:key` | Public direct file delivery | *Public (CDN)* |
+| `GET` | `/private/:key` | Access private file | `X-API-Key` or `?token=&expires=` |
 
 ---
 
 ## 1. TypeScript & Next.js
 
-Utilize o snippet zero-dependências [`snippets/storage.ts`](../snippets/storage.ts). Copie-o para `lib/storage.ts`.
+Use the zero-dependency snippet [`snippets/storage.ts`](../snippets/storage.ts). Copy it to `lib/storage.ts`.
 
-### Exemplo em Next.js (Server Action):
+### Next.js Example (Server Action):
 ```typescript
 // app/actions/upload.ts
 'use server';
@@ -53,10 +58,10 @@ const storage = createStorageClient({
 
 export async function handleAvatarUpload(formData: FormData) {
   const file = formData.get('file') as File;
-  if (!file) throw new Error('Nenhum arquivo enviado');
+  if (!file) throw new Error('No file provided');
 
   const result = await storage.upload(file, {
-    folder: 'usuarios/avatars',
+    folder: 'users/avatars',
     preserveName: true,
   });
 
@@ -68,9 +73,9 @@ export async function handleAvatarUpload(formData: FormData) {
 
 ## 2. Python (FastAPI / Django / Flask)
 
-Utilize o snippet [`snippets/storage.py`](../snippets/storage.py). Copie-o para `app/services/storage.py`.
+Use the snippet [`snippets/storage.py`](../snippets/storage.py). Copy it to `app/services/storage.py`.
 
-### Exemplo em FastAPI:
+### FastAPI Example:
 ```python
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from app.services.storage import EdgeKitStorage
@@ -78,27 +83,27 @@ import os
 
 app = FastAPI()
 storage = EdgeKitStorage(
-    base_url=os.getenv("EDGEKIT_STORAGE_URL", "https://storage.seudominio.com"),
+    base_url=os.getenv("EDGEKIT_STORAGE_URL", "https://storage.yourdomain.com"),
     api_key=os.getenv("EDGEKIT_STORAGE_API_KEY", "")
 )
 
-@app.post("/upload-foto")
-async def upload_foto(file: UploadFile = File(...)):
+@app.post("/upload-photo")
+async def upload_photo(file: UploadFile = File(...)):
     content = await file.read()
     try:
-        resultado = storage.upload(
+        result = storage.upload(
             file=content,
             filename=file.filename,
-            folder="produtos",
+            folder="products",
             preserve_name=True
         )
-        return {"url": resultado["url"], "key": resultado["key"]}
+        return {"url": result["url"], "key": result["key"]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/download-recibo/{key:path}")
-def get_recibo_privado(key: str):
-    # Gera link temporário de 30 minutos para o usuário baixar
+@app.get("/download-receipt/{key:path}")
+def get_private_receipt(key: str):
+    # Generate 30-minute temporary signed link
     signed = storage.get_signed_url(key, expires_in_seconds=1800)
     return {"downloadUrl": signed["url"]}
 ```
@@ -107,9 +112,9 @@ def get_recibo_privado(key: str):
 
 ## 3. PHP & Laravel
 
-Utilize o snippet [`snippets/Storage.php`](../snippets/Storage.php). Salve em `app/Services/EdgeKitStorage.php`.
+Use the snippet [`snippets/Storage.php`](../snippets/Storage.php). Save to `app/Services/EdgeKitStorage.php`.
 
-### Exemplo em um Controller do Laravel:
+### Laravel Controller Example:
 ```php
 namespace App\Http\Controllers;
 
@@ -131,27 +136,27 @@ class MediaController extends Controller
     public function upload(Request $request)
     {
         $request->validate([
-            'documento' => 'required|file|max:10240', // 10MB
+            'document' => 'required|file|max:10240', // 10MB
         ]);
 
-        $file = $request->file('documento');
+        $file = $request->file('document');
 
-        // Envia o arquivo temporário do Laravel para o EdgeKit
-        $resultado = $this->storage->upload($file->getRealPath(), [
-            'folder' => 'documentos/' . auth()->id(),
+        // Upload temporary file to EdgeKit Storage
+        $result = $this->storage->upload($file->getRealPath(), [
+            'folder' => 'documents/' . auth()->id(),
             'preserveName' => true,
-            'private' => true, // Salva protegido
+            'private' => true, // Protected file
         ]);
 
         return response()->json([
-            'sucesso' => true,
-            'key' => $resultado['key'],
+            'success' => true,
+            'key' => $result['key'],
         ]);
     }
 
     public function downloadLink(string $key)
     {
-        // Retorna link temporário de 1h para o usuário final
+        // Return 1-hour temporary signed link for client
         $signed = $this->storage->getSignedUrl($key, 3600);
         return response()->json(['url' => $signed['url']]);
     }
@@ -162,9 +167,9 @@ class MediaController extends Controller
 
 ## 4. Go (Golang)
 
-Utilize o snippet [`snippets/storage.go`](../snippets/storage.go). Copie para o seu pacote `pkg/storage`.
+Use the snippet [`snippets/storage.go`](../snippets/storage.go). Copy to your package `pkg/storage`.
 
-### Exemplo com HTTP nativo:
+### Standard HTTP Example:
 ```go
 package main
 
@@ -174,7 +179,7 @@ import (
 	"net/http"
 	"os"
 
-	"meuapp/pkg/storage"
+	"myapp/pkg/storage"
 )
 
 func main() {
@@ -184,7 +189,7 @@ func main() {
 	)
 
 	http.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) {
-		file, header, err := r.FormFile("arquivo")
+		file, header, err := r.FormFile("file")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -210,19 +215,17 @@ func main() {
 
 ---
 
----
-
 ## 5. C# (.NET 8+ / ASP.NET Core)
 
-Utilize o snippet zero-dependências [`snippets/EdgeKitStorage.cs`](../snippets/EdgeKitStorage.cs). Salve em `Services/EdgeKitStorageClient.cs`.
+Use the zero-dependency snippet [`snippets/EdgeKitStorage.cs`](../snippets/EdgeKitStorage.cs). Save to `Services/EdgeKitStorageClient.cs`.
 
-### Exemplo em um Minimal API ou Controller do ASP.NET Core:
+### ASP.NET Core Minimal API Example:
 ```csharp
 using EdgeKit.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Registra o cliente EdgeKit no container de injeção de dependência
+// Register EdgeKit storage client in DI container
 builder.Services.AddSingleton(new EdgeKitStorageClient(
     baseUrl: builder.Configuration["EdgeKit:Url"]!,
     apiKey: builder.Configuration["EdgeKit:ApiKey"]!
@@ -235,16 +238,16 @@ app.MapPost("/upload", async (IFormFile file, EdgeKitStorageClient storage) =>
     await using var stream = file.OpenReadStream();
     var result = await storage.UploadAsync(stream, file.FileName, new UploadOptions
     {
-        Folder = "documentos",
+        Folder = "documents",
         PreserveName = true
     });
 
     return Results.Ok(new { result.Url, result.Key });
 });
 
-app.MapGet("/recibo/{key}", async (string key, EdgeKitStorageClient storage) =>
+app.MapGet("/receipt/{key}", async (string key, EdgeKitStorageClient storage) =>
 {
-    // Gera link temporário de 1 hora
+    // Generate 1-hour temporary signed link
     var signed = await storage.GetSignedUrlAsync(key, expiresInSeconds: 3600);
     return Results.Ok(new { downloadUrl = signed.Url });
 });
@@ -256,11 +259,11 @@ app.Run();
 
 ## 6. Java (Spring Boot / Java 17+)
 
-Utilize o snippet zero-dependências [`snippets/EdgeKitStorage.java`](../snippets/EdgeKitStorage.java). Salve em `src/main/java/edgekit/storage/EdgeKitStorage.java`.
+Use the zero-dependency snippet [`snippets/EdgeKitStorage.java`](../snippets/EdgeKitStorage.java). Save to `src/main/java/edgekit/storage/EdgeKitStorage.java`.
 
-### Exemplo em um Controller do Spring Boot:
+### Spring Boot Controller Example:
 ```java
-package com.exemplo.demo;
+package com.example.demo;
 
 import edgekit.storage.EdgeKitStorage;
 import edgekit.storage.EdgeKitStorage.UploadOptions;
@@ -269,31 +272,29 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Map;
-
 @RestController
-@RequestMapping("/api/arquivos")
-public class ArquivoController {
+@RequestMapping("/api/files")
+public class FileController {
 
     private final EdgeKitStorage storage;
 
-    public ArquivoController(
+    public FileController(
             @Value("${edgekit.url}") String url,
             @Value("${edgekit.apiKey}") String apiKey) {
         this.storage = new EdgeKitStorage(url, apiKey);
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<?> upload(@RequestParam("arquivo") MultipartFile file) throws Exception {
-        String resultado = storage.upload(
+    public ResponseEntity<?> upload(@RequestParam("file") MultipartFile file) throws Exception {
+        String result = storage.upload(
                 file.getBytes(),
                 file.getOriginalFilename(),
-                UploadOptions.builder().folder("anexos").preserveName(true)
+                UploadOptions.builder().folder("attachments").preserveName(true)
         );
-        return ResponseEntity.ok(resultado);
+        return ResponseEntity.ok(result);
     }
 
-    @GetMapping("/link-privado")
+    @GetMapping("/private-link")
     public ResponseEntity<?> getLink(@RequestParam("key") String key) throws Exception {
         String signedJson = storage.getSignedUrl(key, 3600);
         return ResponseEntity.ok(signedJson);
@@ -305,9 +306,9 @@ public class ArquivoController {
 
 ## 7. Rust (Axum / Actix-web)
 
-Utilize o snippet [`snippets/storage.rs`](../snippets/storage.rs). Salve em `src/storage.rs`.
+Use the snippet [`snippets/storage.rs`](../snippets/storage.rs). Save to `src/storage.rs`.
 
-### Exemplo com Axum:
+### Axum Example:
 ```rust
 use axum::{
     extract::{Multipart, State},
@@ -323,8 +324,8 @@ use storage::{EdgeKitStorage, UploadOptions};
 #[tokio::main]
 async fn main() {
     let client = Arc::new(EdgeKitStorage::new(
-        "https://storage.seudominio.com",
-        "sua-chave-secreta",
+        "https://storage.yourdomain.com",
+        "your-secret-api-key",
     ));
 
     let app = Router::new()
@@ -359,43 +360,43 @@ async fn upload_handler(
         return Ok(Json(serde_json::json!({ "url": res.url, "key": res.key })));
     }
 
-    Err("Nenhum arquivo enviado".to_string())
+    Err("No file uploaded".to_string())
 }
 ```
 
 ---
 
-## 8. cURL & Linha de Comando
+## 8. cURL & Command Line
 
-### 1. Upload de Arquivo:
+### 1. Upload File:
 ```bash
-curl -X POST "https://storage.seudominio.com/upload" \
-  -H "X-API-Key: sua-chave-secreta" \
-  -F "file=@./imagem.jpg" \
-  -F "folder=galeria" \
+curl -X POST "https://storage.yourdomain.com/upload" \
+  -H "X-API-Key: your-secret-api-key" \
+  -F "file=@./image.jpg" \
+  -F "folder=gallery" \
   -F "preserveName=true"
 ```
 
-### 2. Gerar Signed URL para Arquivo Privado:
+### 2. Generate Signed URL for Private File:
 ```bash
-curl -X POST "https://storage.seudominio.com/api/signed-url" \
-  -H "X-API-Key: sua-chave-secreta" \
+curl -X POST "https://storage.yourdomain.com/api/signed-url" \
+  -H "X-API-Key: your-secret-api-key" \
   -H "Content-Type: application/json" \
-  -d '{"key": "private/faturas/123.pdf", "expiresInSeconds": 3600}'
+  -d '{"key": "private/invoices/123.pdf", "expiresInSeconds": 3600}'
 ```
 
-### 3. Excluir Múltiplos Arquivos em Lote:
+### 3. Batch Delete Multiple Files:
 ```bash
-curl -X POST "https://storage.seudominio.com/api/files/batch-delete" \
-  -H "X-API-Key: sua-chave-secreta" \
+curl -X POST "https://storage.yourdomain.com/api/files/batch-delete" \
+  -H "X-API-Key: your-secret-api-key" \
   -H "Content-Type: application/json" \
-  -d '{"keys": ["galeria/foto1.png", "galeria/foto2.png"]}'
+  -d '{"keys": ["gallery/photo1.png", "gallery/photo2.png"]}'
 ```
 
 ---
 
-## 🔒 Melhores Práticas com Arquivos Privados
+## 🔒 Private Files Best Practices
 
-1. **Nunca envie sua `API_KEY` para o frontend/navegador do cliente.**
-2. Para exibir imagens ou permitir download de contratos privados, seu backend deve chamar `getSignedUrl(key, 3600)` e entregar apenas a URL assinada resultante.
-3. Se o token expirar ou for adulterado, o Cloudflare Worker rejeita instantaneamente a requisição com código `403 Forbidden`.
+1. **Never expose your `API_KEY` to client-side browsers or frontends.**
+2. To display private files or permit downloads, have your backend call `getSignedUrl(key, 3600)` and hand only the temporary URL to the user.
+3. If the signature token expires or is modified, Cloudflare Worker instantly rejects the request with `403 Forbidden`.

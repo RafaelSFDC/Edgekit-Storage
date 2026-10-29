@@ -37,7 +37,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from './ui/alert-dialog';
-import { formatBytes, formatDate } from '../lib/utils';
+import { formatBytes } from '../lib/utils';
+import { useI18n } from '../i18n';
 import type { StorageObject } from '../types';
 
 interface FileGridProps {
@@ -63,6 +64,7 @@ export const FileGrid: React.FC<FileGridProps> = ({
   onBatchDelete,
   onPreview,
 }) => {
+  const { t, formatDate } = useI18n();
   const [search, setSearch] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -148,7 +150,7 @@ export const FileGrid: React.FC<FileGridProps> = ({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome ou caminho..."
+              placeholder={t.files.searchPlaceholder}
               className="pl-9 h-9"
             />
           </div>
@@ -159,13 +161,13 @@ export const FileGrid: React.FC<FileGridProps> = ({
             <div className="w-36 shrink-0">
               <Select value={selectedType} onValueChange={(val) => setSelectedType(val || 'all')}>
                 <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Tipo de arquivo" />
+                  <SelectValue placeholder={t.files.typePlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os tipos</SelectItem>
-                  <SelectItem value="images">Apenas Imagens</SelectItem>
-                  <SelectItem value="pdf">Apenas PDFs</SelectItem>
-                  <SelectItem value="private">Apenas Privados</SelectItem>
+                  <SelectItem value="all">{t.files.types.all}</SelectItem>
+                  <SelectItem value="images">{t.files.types.images}</SelectItem>
+                  <SelectItem value="pdf">{t.files.types.pdf}</SelectItem>
+                  <SelectItem value="private">{t.files.types.private}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -175,10 +177,10 @@ export const FileGrid: React.FC<FileGridProps> = ({
               <div className="w-40 shrink-0">
                 <Select value={selectedFolder} onValueChange={(val) => setSelectedFolder(val || 'all')}>
                   <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Pasta" />
+                    <SelectValue placeholder={t.files.folderPlaceholder} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas as Pastas</SelectItem>
+                    <SelectItem value="all">{t.files.folders.all}</SelectItem>
                     {folders.map((f) => (
                       <SelectItem key={f} value={f}>
                         {f}
@@ -196,7 +198,7 @@ export const FileGrid: React.FC<FileGridProps> = ({
                 size="icon"
                 onClick={() => setViewMode('grid')}
                 className="h-8 w-8 rounded-sm"
-                title="Exibição em Grade"
+                title={t.files.gridMode}
               >
                 <LayoutGrid className="h-4 w-4" />
               </Button>
@@ -205,7 +207,7 @@ export const FileGrid: React.FC<FileGridProps> = ({
                 size="icon"
                 onClick={() => setViewMode('list')}
                 className="h-8 w-8 rounded-sm"
-                title="Exibição em Tabela"
+                title={t.files.tableMode}
               >
                 <List className="h-4 w-4" />
               </Button>
@@ -219,7 +221,7 @@ export const FileGrid: React.FC<FileGridProps> = ({
         <div className="flex flex-wrap items-center justify-between p-3 rounded-lg border border-primary/30 bg-primary/5 text-xs text-foreground gap-3 animate-in fade-in duration-150">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-primary">
-              {selectedKeys.size} {selectedKeys.size === 1 ? 'arquivo selecionado' : 'arquivos selecionados'}
+              {t.files.selectedCount(selectedKeys.size)}
             </span>
             <span className="text-muted-foreground">•</span>
             <button
@@ -227,7 +229,7 @@ export const FileGrid: React.FC<FileGridProps> = ({
               onClick={clearSelection}
               className="text-muted-foreground hover:text-foreground underline underline-offset-2"
             >
-              Desmarcar todos
+              {t.files.deselectAll}
             </button>
             <span className="text-muted-foreground">•</span>
             <button
@@ -235,7 +237,7 @@ export const FileGrid: React.FC<FileGridProps> = ({
               onClick={selectAll}
               className="text-muted-foreground hover:text-foreground underline underline-offset-2"
             >
-              Selecionar todos visíveis ({filteredObjects.length})
+              {t.files.selectAllVisible(filteredObjects.length)}
             </button>
           </div>
 
@@ -246,7 +248,7 @@ export const FileGrid: React.FC<FileGridProps> = ({
             className="h-8 text-xs gap-1.5"
           >
             <Trash2 className="h-3.5 w-3.5" />
-            <span>Excluir selecionados</span>
+            <span>{t.files.deleteSelected}</span>
           </Button>
         </div>
       )}
@@ -255,17 +257,17 @@ export const FileGrid: React.FC<FileGridProps> = ({
       {isLoading ? (
         <div className="py-24 text-center">
           <Loader2 className="h-7 w-7 animate-spin mx-auto text-muted-foreground mb-3" />
-          <p className="text-xs text-muted-foreground">Carregando objetos do EdgeKit Storage...</p>
+          <p className="text-xs text-muted-foreground">{t.files.loadingObjects}</p>
         </div>
       ) : filteredObjects.length === 0 ? (
         <Card className="py-16 text-center border-dashed">
           <CardContent className="flex flex-col items-center justify-center">
             <FileSpreadsheet className="h-10 w-10 text-muted-foreground mb-3 stroke-[1.5]" />
-            <h3 className="text-sm font-semibold text-foreground">Nenhum arquivo encontrado</h3>
+            <h3 className="text-sm font-semibold text-foreground">{t.files.emptyTitle}</h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-sm">
               {search || selectedFolder !== 'all' || selectedType !== 'all'
-                ? 'Nenhum resultado corresponde aos filtros selecionados.'
-                : 'Envie seus primeiros arquivos através da área de upload acima.'}
+                ? t.files.emptyFiltered
+                : t.files.emptyInitial}
             </p>
           </CardContent>
         </Card>
@@ -297,10 +299,10 @@ export const FileGrid: React.FC<FileGridProps> = ({
                 {isLoadingMore ? (
                   <>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    <span>Carregando mais arquivos...</span>
+                    <span>{t.files.loadingMore}</span>
                   </>
                 ) : (
-                  <span>Carregar mais arquivos</span>
+                  <span>{t.files.loadMore}</span>
                 )}
               </Button>
             </div>
@@ -319,14 +321,14 @@ export const FileGrid: React.FC<FileGridProps> = ({
                       checked={filteredObjects.length > 0 && selectedKeys.size === filteredObjects.length}
                       onChange={(e) => (e.target.checked ? selectAll() : clearSelection())}
                       className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
-                      title="Selecionar todos"
+                      title={t.files.table.selectAllTitle}
                     />
                   </TableHead>
-                  <TableHead>Arquivo</TableHead>
-                  <TableHead>Tipo MIME</TableHead>
-                  <TableHead>Tamanho</TableHead>
-                  <TableHead>Data de Envio</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead>{t.files.table.file}</TableHead>
+                  <TableHead>{t.files.table.mimeType}</TableHead>
+                  <TableHead>{t.files.table.size}</TableHead>
+                  <TableHead>{t.files.table.uploadedAt}</TableHead>
+                  <TableHead className="text-right">{t.files.table.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -348,7 +350,7 @@ export const FileGrid: React.FC<FileGridProps> = ({
                       <span className="truncate max-w-sm sm:max-w-md">{obj.key}</span>
                       {obj.isPrivate && (
                         <Badge variant="outline" className="text-[10px] py-0 text-amber-500 border-border">
-                          Privado
+                          {t.files.table.private}
                         </Badge>
                       )}
                     </TableCell>
@@ -364,14 +366,14 @@ export const FileGrid: React.FC<FileGridProps> = ({
                           className="h-8 text-xs gap-1"
                         >
                           <Copy className="h-3 w-3" />
-                          <span>Copiar</span>
+                          <span>{t.files.actions.copy}</span>
                         </Button>
                         <Button
                           variant="outline"
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-foreground"
                           onClick={() => window.open(obj.url, '_blank')}
-                          title="Abrir arquivo"
+                          title={t.files.actions.openFile}
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
@@ -389,11 +391,11 @@ export const FileGrid: React.FC<FileGridProps> = ({
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => onPreview(obj)}>
                               <FileText className="h-4 w-4" />
-                              <span>Ver Detalhes</span>
+                              <span>{t.files.actions.viewDetails}</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => window.open(obj.url, '_blank')}>
                               <Download className="h-4 w-4" />
-                              <span>Baixar</span>
+                              <span>{t.files.actions.download}</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -401,7 +403,7 @@ export const FileGrid: React.FC<FileGridProps> = ({
                               className="text-destructive focus:text-destructive focus:bg-destructive/10"
                             >
                               <Trash2 className="h-4 w-4" />
-                              <span>Excluir</span>
+                              <span>{t.files.actions.delete}</span>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -426,10 +428,10 @@ export const FileGrid: React.FC<FileGridProps> = ({
                 {isLoadingMore ? (
                   <>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    <span>Carregando mais arquivos...</span>
+                    <span>{t.files.loadingMore}</span>
                   </>
                 ) : (
-                  <span>Carregar mais arquivos</span>
+                  <span>{t.files.loadMore}</span>
                 )}
               </Button>
             </div>
@@ -441,16 +443,16 @@ export const FileGrid: React.FC<FileGridProps> = ({
       <AlertDialog open={Boolean(deletingKey)} onOpenChange={(open) => !open && setDeletingKey(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Arquivo</AlertDialogTitle>
+            <AlertDialogTitle>{t.files.deleteModal.title}</AlertDialogTitle>
             <AlertDialogDescription>
-              Deseja remover <strong>{deletingKey}</strong> permanentemente do bucket R2? Esta ação não pode ser revertida.
+              {t.files.deleteModal.description(deletingKey || '')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>{t.files.deleteModal.cancel}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} disabled={isDeleting}>
               {isDeleting && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
-              Excluir Permanentemente
+              {t.files.deleteModal.confirm}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -460,16 +462,16 @@ export const FileGrid: React.FC<FileGridProps> = ({
       <AlertDialog open={isBatchAlertOpen} onOpenChange={setIsBatchAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Múltiplos Arquivos</AlertDialogTitle>
+            <AlertDialogTitle>{t.files.batchDeleteModal.title}</AlertDialogTitle>
             <AlertDialogDescription>
-              Deseja excluir permanentemente os <strong>{selectedKeys.size} arquivos selecionados</strong> do bucket R2? Esta ação é irreversível.
+              {t.files.batchDeleteModal.description(selectedKeys.size)}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isBatchDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isBatchDeleting}>{t.files.batchDeleteModal.cancel}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmBatchDelete} disabled={isBatchDeleting}>
               {isBatchDeleting && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
-              Excluir {selectedKeys.size} Arquivos
+              {t.files.batchDeleteModal.confirm(selectedKeys.size)}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

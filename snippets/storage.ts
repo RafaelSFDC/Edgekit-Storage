@@ -1,31 +1,31 @@
 /**
  * EdgeKit Storage Client (Zero-Dependency Copy-Paste Snippet)
  * 
- * Copie este arquivo diretamente para o seu projeto (ex: `lib/edgekit-storage.ts`).
- * Funciona nativamente com Fetch no Node.js 18+, Next.js, Astro, Remix, Vite, Bun e Deno.
+ * Copy this file directly into your project (e.g., `lib/edgekit-storage.ts`).
+ * Works natively with Fetch in Node.js 18+, Next.js, Astro, Remix, Vite, Bun, and Deno.
  */
 
 export interface StorageConfig {
   /**
-   * URL base do seu Worker EdgeKit Storage
-   * Exemplo: "https://storage-api.seudominio.com" ou "http://localhost:8787"
+   * Base URL of your EdgeKit Storage Worker
+   * Example: "https://storage-api.yourdomain.com" or "http://localhost:8787"
    */
   baseUrl: string;
 
   /**
-   * Sua API Key secreta configurada no Worker
+   * Secret API Key configured in your Worker
    */
   apiKey: string;
 }
 
 export interface UploadOptions {
-  /** Subpasta no bucket (ex: "avatars", "produtos", "blog/2026") */
+  /** Subfolder in the bucket (e.g. "avatars", "products", "blog/2026") */
   folder?: string;
-  /** Se true, mantém o nome original precedido por um identificador único */
+  /** If true, keeps original filename prefixed by unique ID */
   preserveName?: boolean;
-  /** Nome exato personalizado para o arquivo */
+  /** Exact custom name/path for the file */
   customName?: string;
-  /** Se true, salva em pasta privada acessível apenas com API Key */
+  /** If true, saves to private folder accessible only with API Key or Signed URL */
   private?: boolean;
 }
 
@@ -62,7 +62,7 @@ export function createStorageClient(config: StorageConfig) {
 
   return {
     /**
-     * Envia um arquivo (File, Blob ou Buffer) para o Cloudflare R2
+     * Uploads a file (File, Blob, or Buffer) to Cloudflare R2
      */
     async upload(
       file: File | Blob,
@@ -85,14 +85,14 @@ export function createStorageClient(config: StorageConfig) {
       const json = await res.json() as { success: boolean; data: StorageFile; error?: { message: string } };
 
       if (!res.ok || !json.success) {
-        throw new Error(json.error?.message || `Falha no upload (Status ${res.status})`);
+        throw new Error(json.error?.message || `Upload failed (Status ${res.status})`);
       }
 
       return json.data;
     },
 
     /**
-     * Exclui um arquivo do bucket pelo seu caminho/key
+     * Deletes a file from the bucket by its key
      */
     async delete(key: string): Promise<boolean> {
       const cleanKey = key.replace(/^\/+/, '');
@@ -104,14 +104,14 @@ export function createStorageClient(config: StorageConfig) {
       const json = await res.json() as { success: boolean; error?: { message: string } };
 
       if (!res.ok || !json.success) {
-        throw new Error(json.error?.message || `Falha ao deletar arquivo (Status ${res.status})`);
+        throw new Error(json.error?.message || `Failed to delete file (Status ${res.status})`);
       }
 
       return true;
     },
 
     /**
-     * Exclui múltiplos arquivos do bucket de uma só vez (deleção em lote)
+     * Deletes multiple files from the bucket in a single request (batch delete)
      */
     async deleteMany(keys: string[]): Promise<boolean> {
       const res = await fetch(`${baseUrl}/api/files/batch-delete`, {
@@ -126,15 +126,15 @@ export function createStorageClient(config: StorageConfig) {
       const json = await res.json() as { success: boolean; error?: { message: string } };
 
       if (!res.ok || !json.success) {
-        throw new Error(json.error?.message || `Falha ao deletar arquivos em lote (Status ${res.status})`);
+        throw new Error(json.error?.message || `Failed to batch delete files (Status ${res.status})`);
       }
 
       return true;
     },
 
     /**
-     * Gera uma URL temporária assinada com HMAC para acesso seguro a arquivo privado.
-     * Pode ser entregue com segurança ao frontend/usuário final sem expor a API Key.
+     * Generates a temporary HMAC-SHA256 signed URL for secure private file access.
+     * Can be safely handed to frontend users without exposing the API Key.
      */
     async getSignedUrl(
       key: string,
@@ -159,14 +159,14 @@ export function createStorageClient(config: StorageConfig) {
       };
 
       if (!res.ok || !json.success) {
-        throw new Error(json.error?.message || `Falha ao gerar URL assinada (Status ${res.status})`);
+        throw new Error(json.error?.message || `Failed to generate signed URL (Status ${res.status})`);
       }
 
       return json.data;
     },
 
     /**
-     * Lista arquivos no bucket R2 com paginação e filtro por prefixo
+     * Lists files in the R2 bucket with cursor pagination and prefix filtering
      */
     async list(options: ListOptions = {}): Promise<ListResult> {
       const params = new URLSearchParams();
@@ -183,14 +183,14 @@ export function createStorageClient(config: StorageConfig) {
       const json = await res.json() as { success: boolean; data: ListResult; error?: { message: string } };
 
       if (!res.ok || !json.success) {
-        throw new Error(json.error?.message || `Falha ao listar arquivos (Status ${res.status})`);
+        throw new Error(json.error?.message || `Failed to list files (Status ${res.status})`);
       }
 
       return json.data;
     },
 
     /**
-     * Obtém metadados de um arquivo específico sem baixar o conteúdo
+     * Retrieves metadata for a specific file without downloading its body
      */
     async getMeta(key: string): Promise<StorageFile> {
       const cleanKey = key.replace(/^\/+/, '');
@@ -202,7 +202,7 @@ export function createStorageClient(config: StorageConfig) {
       const json = await res.json() as { success: boolean; data: StorageFile; error?: { message: string } };
 
       if (!res.ok || !json.success) {
-        throw new Error(json.error?.message || `Arquivo não encontrado (Status ${res.status})`);
+        throw new Error(json.error?.message || `File not found (Status ${res.status})`);
       }
 
       return json.data;

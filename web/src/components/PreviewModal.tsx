@@ -12,7 +12,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
-import { formatBytes, formatDate } from '../lib/utils';
+import { formatBytes } from '../lib/utils';
+import { useI18n } from '../i18n';
 import type { StorageObject, SignedUrlResponse } from '../types';
 
 interface PreviewModalProps {
@@ -21,6 +22,7 @@ interface PreviewModalProps {
 }
 
 export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) => {
+  const { t, formatDate } = useI18n();
   const [copiedType, setCopiedType] = useState<string | null>(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [isGeneratingSigned, setIsGeneratingSigned] = useState(false);
@@ -117,7 +119,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
                     className="gap-1.5"
                   >
                     <ExternalLink className="h-4 w-4" />
-                    <span>Visualizar Arquivo</span>
+                    <span>{t.previewModal.viewFile}</span>
                   </Button>
                 </div>
               </div>
@@ -131,7 +133,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 border border-border rounded-lg bg-card space-y-1">
                   <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                    <Database className="h-3 w-3" /> Tamanho
+                    <Database className="h-3 w-3" /> {t.previewModal.size}
                   </span>
                   <p className="text-sm font-semibold text-foreground">
                     {formatBytes(object.size)}
@@ -139,7 +141,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
                 </div>
                 <div className="p-3 border border-border rounded-lg bg-card space-y-1">
                   <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                    <Calendar className="h-3 w-3" /> Data de Envio
+                    <Calendar className="h-3 w-3" /> {t.previewModal.uploadedAt}
                   </span>
                   <p className="text-sm font-semibold text-foreground">
                     {formatDate(object.uploadedAt)}
@@ -149,7 +151,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
 
               <div className="p-3 border border-border rounded-lg bg-card space-y-1">
                 <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <Hash className="h-3 w-3" /> Identificação & MIME
+                  <Hash className="h-3 w-3" /> {t.previewModal.idAndMime}
                 </span>
                 <p className="text-xs font-mono text-muted-foreground">
                   {object.mimeType} {object.etag ? `• ${object.etag.slice(0, 16)}...` : ''}
@@ -162,7 +164,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-xs font-medium text-amber-500">
                       <Lock className="h-3.5 w-3.5" />
-                      <span>Arquivo Privado Protegido</span>
+                      <span>{t.previewModal.privateTitle}</span>
                     </div>
                     <Button
                       variant="outline"
@@ -176,7 +178,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
                       ) : (
                         <Key className="h-3 w-3" />
                       )}
-                      <span>{signedUrl ? 'Regerar Token (1h)' : 'Gerar URL Assinada (1h)'}</span>
+                      <span>{signedUrl ? t.previewModal.regenerateToken : t.previewModal.generateSignedUrl}</span>
                     </Button>
                   </div>
                   {signedUrl ? (
@@ -185,12 +187,12 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
                         {signedUrl}
                       </p>
                       <span className="text-[10px] text-emerald-500 font-medium flex items-center gap-1">
-                        <Check className="h-3 w-3" /> URL assinada ativa válida por 1 hora
+                        <Check className="h-3 w-3" /> {t.previewModal.signedUrlActive}
                       </span>
                     </div>
                   ) : (
                     <p className="text-[11px] text-muted-foreground">
-                      Arquivos privados necessitam de uma assinatura temporária (Signed URL) para acesso externo seguro sem vazar a API Key.
+                      {t.previewModal.privateExplainer}
                     </p>
                   )}
                 </div>
@@ -202,15 +204,15 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   <Code2 className="h-3.5 w-3.5" />
-                  <span>Snippets de Integração</span>
+                  <span>{t.previewModal.snippetsTitle}</span>
                 </div>
 
                 <Tabs defaultValue="url">
                   <TabsList className="w-full grid grid-cols-4">
-                    <TabsTrigger value="url" className="text-xs">URL</TabsTrigger>
-                    <TabsTrigger value="html" className="text-xs">HTML</TabsTrigger>
-                    <TabsTrigger value="markdown" className="text-xs">MD</TabsTrigger>
-                    <TabsTrigger value="nextjs" className="text-xs">Next.js</TabsTrigger>
+                    <TabsTrigger value="url" className="text-xs">{t.previewModal.tabs.url}</TabsTrigger>
+                    <TabsTrigger value="html" className="text-xs">{t.previewModal.tabs.html}</TabsTrigger>
+                    <TabsTrigger value="markdown" className="text-xs">{t.previewModal.tabs.markdown}</TabsTrigger>
+                    <TabsTrigger value="nextjs" className="text-xs">{t.previewModal.tabs.nextjs}</TabsTrigger>
                   </TabsList>
 
                   {(['url', 'html', 'markdown', 'nextjs'] as const).map((tab) => (
@@ -223,7 +225,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
                         size="icon"
                         onClick={() => handleCopy(snippets[tab], tab)}
                         className="absolute right-1.5 top-1.5 h-7 w-7 text-muted-foreground hover:text-foreground"
-                        title="Copiar snippet"
+                        title={t.previewModal.copySnippet}
                       >
                         {copiedType === tab ? (
                           <Check className="h-3.5 w-3.5 text-emerald-500" />
@@ -246,7 +248,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
                 className="gap-1.5"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
-                <span>Abrir</span>
+                <span>{t.previewModal.open}</span>
               </Button>
               <Button
                 variant="default"
@@ -257,12 +259,18 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ object, onClose }) =
                 {copiedType === 'url-main' ? (
                   <>
                     <Check className="h-3.5 w-3.5" />
-                    <span>{signedUrl ? 'URL Assinada Copiada!' : 'URL Copiada!'}</span>
+                    <span>{signedUrl ? t.previewModal.signedUrlCopied : t.previewModal.urlCopied}</span>
                   </>
                 ) : (
                   <>
                     <Copy className="h-3.5 w-3.5" />
-                    <span>{signedUrl ? 'Copiar URL Assinada' : object.isPrivate ? 'Copiar Link Privado' : 'Copiar URL Pública'}</span>
+                    <span>
+                      {signedUrl
+                        ? t.previewModal.copySignedUrl
+                        : object.isPrivate
+                        ? t.previewModal.copyPrivateLink
+                        : t.previewModal.copyPublicUrl}
+                    </span>
                   </>
                 )}
               </Button>

@@ -1,18 +1,18 @@
-# Chave de API secreta para autenticar chamadas de upload, listagem e deleção
-API_KEY=sua-chave-secreta-forte-aqui
+# Secret API Key to authenticate upload, list, and delete requests
+API_KEY=your-strong-secret-key-here
 
-# URL pública configurada no R2 (Custom Domain ou subdomínio r2.dev)
-# Exemplo: https://media.seudominio.com ou https://pub-xxxxxx.r2.dev
+# Public URL configured in R2 (Custom Domain or r2.dev subdomain)
+# Example: https://media.yourdomain.com or https://pub-xxxxxx.r2.dev
 PUBLIC_URL=http://localhost:8787/f
 
-# Tipos permitidos (* para todos, ou lista separada por vírgula como image/*,application/pdf)
+# Allowed MIME types (* for all, or comma-separated list like image/*,application/pdf)
 ALLOWED_MIME_TYPES=image/*,application/pdf
 
-# Limite de tamanho em Megabytes
+# Maximum file size limit in Megabytes
 MAX_FILE_SIZE_MB=25
 
-# Streaming via Worker ativado
+# Enable Worker fallback streaming
 ENABLE_WORKER_FALLBACK_STREAM=true
 
-# Domínios permitidos no CORS (separados por vírgula)
+# Allowed CORS origins (comma-separated)
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173

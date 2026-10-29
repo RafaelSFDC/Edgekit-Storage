@@ -14,10 +14,10 @@ export function formatBytes(bytes: number, decimals = 1): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 
-export function formatDate(dateString: string): string {
+export function formatDate(dateString: string, locale: string = 'en-US'): string {
   try {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('pt-BR', {
+    return new Intl.DateTimeFormat(locale, {
       day: '2-digit',
       month: 'short',
       year: 'numeric',

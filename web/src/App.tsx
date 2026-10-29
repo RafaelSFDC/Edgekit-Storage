@@ -10,9 +10,11 @@ import { SnippetModal } from './components/SnippetModal';
 import { TooltipProvider } from './components/ui/tooltip';
 import { Alert, AlertDescription } from './components/ui/alert';
 import { Button } from './components/ui/button';
+import { useI18n } from './i18n';
 import type { StorageObject, ListResponse } from './types';
 
 export const App: React.FC = () => {
+  const { t } = useI18n();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const [isSnippetModalOpen, setIsSnippetModalOpen] = useState(false);
@@ -63,14 +65,14 @@ export const App: React.FC = () => {
         setNextCursor(json.data.cursor || null);
         setHasMore(Boolean(json.data.truncated && json.data.cursor));
       } else {
-        setError(json.error?.message || 'Falha ao carregar arquivos do bucket R2.');
+        setError(json.error?.message || t.app.errorLoadFiles);
       }
     } catch {
-      setError('Erro de conexão ao carregar arquivos.');
+      setError(t.app.errorConnection);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const fetchMoreFiles = useCallback(async () => {
     if (!nextCursor || isLoadingMore) return;
@@ -88,14 +90,14 @@ export const App: React.FC = () => {
         setNextCursor(json.data.cursor || null);
         setHasMore(Boolean(json.data.truncated && json.data.cursor));
       } else {
-        setError(json.error?.message || 'Falha ao carregar mais arquivos.');
+        setError(json.error?.message || t.app.errorLoadMore);
       }
     } catch {
-      setError('Erro de conexão ao carregar mais arquivos.');
+      setError(t.app.errorConnectionMore);
     } finally {
       setIsLoadingMore(false);
     }
-  }, [nextCursor, isLoadingMore]);
+  }, [nextCursor, isLoadingMore, t]);
 
   // Check auth status on initial mount
   useEffect(() => {
@@ -217,7 +219,7 @@ export const App: React.FC = () => {
                 onClick={() => setIsKeyModalOpen(true)}
                 className="h-8 text-xs border-destructive text-destructive hover:bg-destructive/10"
               >
-                Configurar Chave
+                {t.app.configureKeyBtn}
               </Button>
             </Alert>
           )}
@@ -241,10 +243,10 @@ export const App: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-baseline gap-2">
                 <h2 className="text-base font-semibold tracking-tight text-foreground">
-                  Arquivos no Bucket
+                  {t.app.bucketFilesHeader}
                 </h2>
                 <span className="text-xs text-muted-foreground font-normal">
-                  ({objects.length} {objects.length === 1 ? 'item' : 'itens'})
+                  {t.app.itemsCount(objects.length)}
                 </span>
               </div>
             </div>
@@ -284,8 +286,8 @@ export const App: React.FC = () => {
         {/* Footer */}
         <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground bg-background">
           <p>
-            EdgeKit Storage • Desenvolvido para{' '}
-            <span className="text-foreground font-medium">Cloudflare Workers & R2</span> • Open-Source MIT
+            EdgeKit Storage • {t.app.footer.developedFor}{' '}
+            <span className="text-foreground font-medium">Cloudflare Workers & R2</span> • {t.app.footer.openSource}
           </p>
         </footer>
       </div>

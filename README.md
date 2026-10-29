@@ -1,175 +1,180 @@
 # EdgeKit Storage (Cloudflare Workers + R2)
 
+<p align="left">
+  <b>🇺🇸 English</b> •
+  <a href="README.pt-BR.md">🇧🇷 Português (Brasil)</a>
+</p>
+
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/seu-usuario/edgekit-storage)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Zero Egress](https://img.shields.io/badge/Bandwidth-Zero%20Egress%20Fee-emerald)](#)
 
-Uma **alternativa open-source, serverless e self-hosted ao Uploadthing e AWS S3**, desenvolvida com **Hono** no **Cloudflare Workers** integrado ao **Cloudflare R2**. 
+An **open-source, serverless, and self-hosted alternative to Uploadthing and AWS S3**, built with **Hono** on **Cloudflare Workers** integrated with **Cloudflare R2**.
 
-Projetada com dupla finalidade:
-1. **Dashboard visual completa** para gerenciar seus arquivos na nuvem com tema escuro, busca e drag-and-drop.
-2. **Microsserviço / API externa de alta performance** para qualquer aplicação existente (seja em **Vercel, VPS, AWS, Next.js, Node, Laravel, Go ou Python**), com um cliente TypeScript estilo shadcn de zero dependências.
-
----
-
-## 🚀 Destaques
-
-- ⚡ **Deploy em 1 Clique**: Botão oficial Cloudflare Workers Deploy ou configuração via `pnpm run setup`.
-- 💰 **Zero Egress Fee**: O Cloudflare R2 não cobra taxa de transferência de saída (bandwidth de download gratuita).
-- 🔐 **URLs Assinadas com HMAC-SHA256**: Entregue links temporários para arquivos privados (`storage.getSignedUrl(key, { expiresInSeconds })`) sem expor sua API Key mestra.
-- 🗑️ **Deleção em Lote (Batch Delete)**: Exclua dezenas ou centenas de arquivos de uma só vez via API ou com seleção múltipla na dashboard.
-- 📄 **Paginação Real por Cursor**: Navegue por milhares de arquivos com cursor nativo do R2 e botão "Carregar mais".
-- 🌐 **CORS Flexível para Apps Externos**: Configure `ALLOWED_ORIGINS` para permitir uploads diretos a partir do seu app na Vercel ou VPS com segurança.
-- 🖥️ **Dashboard Web Integrada**: Interface em **React 19 + Tailwind CSS** servida diretamente pela Cloudflare na rota raiz `/` com pré-visualizações, métricas e snippets prontos.
-- 📦 **Snippet estilo shadcn (Zero Dependências NPM)**: Copie [`snippets/storage.ts`](snippets/storage.ts) para o seu app (`lib/storage.ts`) e use TypeScript com Fetch nativo sem instalar bibliotecas pesadas de terceiros.
+Designed with a dual purpose:
+1. **Full-Featured Visual Dashboard** to manage your files in the cloud with dark mode, instant search, and drag-and-drop uploads.
+2. **High-Performance External Microservice / API** for any existing application (whether in **Vercel, VPS, AWS, Next.js, Node, Laravel, Go, or Python**), featuring a zero-dependency shadcn-style TypeScript client.
 
 ---
 
-## 🖥️ Dashboard Web Integrada
+## 🚀 Highlights
 
-O projeto conta com uma interface moderna construída em **React 19, Tailwind CSS e Lucide Icons**, compilada e servida automaticamente na borda pelo Cloudflare Workers via **Static Assets**:
-
-- 🔑 **Configuração Segura de API Key**: Modal intuitivo com teste de conexão em tempo real e armazenamento no `localStorage`.
-- ☁️ **Área de Drag & Drop**: Arraste múltiplos arquivos com preview, barra de progresso individual e opções de pasta, preservação de nome e arquivo privado.
-- 🖼️ **Galeria Interativa**: Visualização em Grade ou Tabela, busca em tempo real, filtro por pasta e formato.
-- 📋 **Modal de Detalhes & Snippets**: Clique em qualquer arquivo para ver dimensões, metadados e copiar snippets prontos em **HTML (`<img>`)**, **Markdown** ou **Next.js (`<Image />`)**.
+- ⚡ **1-Click Deploy**: Official Cloudflare Workers Deploy button or interactive setup via `pnpm run setup`.
+- 💰 **Zero Egress Fees**: Cloudflare R2 does not charge egress transfer fees (free download bandwidth).
+- 🔐 **HMAC-SHA256 Signed URLs**: Deliver temporary access links for private files (`storage.getSignedUrl(key, { expiresInSeconds })`) without exposing your master API Key.
+- 🗑️ **Batch Delete**: Remove dozens or hundreds of files at once via the API or through multi-selection in the dashboard.
+- 📄 **Cursor-Based Pagination**: Navigate thousands of files seamlessly with R2's native cursor and "Load More" functionality.
+- 🌐 **Flexible CORS for External Apps**: Configure `ALLOWED_ORIGINS` to allow secure direct uploads from your frontend apps on Vercel or VPS.
+- 🖥️ **Integrated Web Dashboard**: Built with **React 19 + Tailwind CSS**, served directly from the edge on the root route `/` with file previews, metrics, and ready-to-use snippets.
+- 📦 **shadcn-Style Client Snippet (Zero NPM Dependencies)**: Copy [`snippets/storage.ts`](snippets/storage.ts) into your project (`lib/storage.ts`) and use TypeScript with native Fetch without installing third-party libraries.
 
 ---
 
-## 📐 Como Funciona a Arquitetura
+## 🖥️ Integrated Web Dashboard
+
+The project includes a modern web dashboard built with **React 19, Tailwind CSS, and Lucide Icons**, compiled and served automatically from Cloudflare Workers edge via **Static Assets**:
+
+- 🔑 **Secure API Key Setup**: Intuitive modal with real-time connection verification and HttpOnly cookie session support.
+- ☁️ **Drag & Drop Area**: Upload multiple files with live preview, per-file progress tracking, custom folder prefix, name preservation, and private file flags.
+- 🖼️ **Interactive Gallery**: Grid or Table view mode, live search, folder filter, and MIME-type filter.
+- 📋 **Preview & Snippet Modal**: Inspect file dimensions and metadata, copy direct URLs, generate signed URLs, or copy integration snippets in **HTML (`<img>`)**, **Markdown**, or **Next.js (`<Image />`)**.
+
+---
+
+## 📐 Architecture Overview
 
 ```
-[Seu Backend Externo]
-        │
-        ▼ (POST /upload com API Key)
-[Hono Worker na Cloudflare]
-        │
-        ▼ (Salva objeto no R2)
+[Your External Backend / App]
+          │
+          ▼ (POST /upload with API Key)
+[Hono Worker on Cloudflare]
+          │
+          ▼ (Stores object in R2)
 [Cloudflare R2 Bucket]
-        │
-        ▼ (Retorna URL direta: https://media.seusite.com/2026/10/hash.png)
-[Seu Backend Externo]
-        │
-        ▼
-[Navegadores / Usuários Finais] ──(Acesso Direto ao R2 / CDN)──► [Cloudflare R2]
-                                (Zero requisições no Worker!)
+          │
+          ▼ (Returns direct URL: https://media.yourdomain.com/2026/10/hash.png)
+[Your External Backend / App]
+          │
+          ▼
+[Browsers / End Users] ──(Direct Access to R2 / CDN)──► [Cloudflare R2]
+                         (Zero Worker invocation costs!)
 ```
 
 ---
 
-## 🛠️ Pré-requisitos
+## 🛠️ Prerequisites
 
 - **Node.js** >= 18
-- **pnpm** (ou npm)
-- Conta na **Cloudflare** com R2 ativado (plano gratuito inclui 10 GB de armazenamento).
+- **pnpm** (or npm)
+- A **Cloudflare** account with R2 enabled (free tier includes 10 GB of storage).
 
 ---
 
-## ⚡ Instalação e Desenvolvimento Local
+## ⚡ Installation & Local Development
 
-1. **Clone o repositório:**
+1. **Clone the repository:**
    ```bash
-   git clone https://github.com/seu-usuario/cloudflare-storage.git
-   cd cloudflare-storage
+   git clone https://github.com/seu-usuario/edgekit-storage.git
+   cd edgekit-storage
    ```
 
-2. **Instale as dependências:**
+2. **Install dependencies:**
    ```bash
    pnpm install
    ```
 
-3. **Configure as variáveis locais:**
-   Crie o arquivo `.dev.vars` (já incluso no `.gitignore`):
+3. **Configure local environment variables:**
+   Create `.dev.vars` (or run `pnpm setup`):
    ```ini
-   API_KEY=minha-chave-secreta-de-teste
+   API_KEY=my-secret-test-api-key
    PUBLIC_URL=http://localhost:8787/f
    ALLOWED_MIME_TYPES=image/*,application/pdf
    MAX_FILE_SIZE_MB=25
    ```
 
-4. **Inicie o servidor de desenvolvimento:**
+4. **Start the local dev server:**
    ```bash
    pnpm dev
    ```
-   O Wrangler iniciará um ambiente simulado local com emulador de R2 em `http://localhost:8787`.
+   Wrangler will launch a local development server with an R2 emulator at `http://localhost:8787`.
 
-5. **Executar testes automatizados ponta a ponta:**
+5. **Run automated end-to-end tests:**
    ```bash
    pnpm test
    ```
 
 ---
 
-## 🌐 Publicação na Cloudflare (Deploy)
+## 🌐 Deploying to Cloudflare
 
-### 1. Fazer login na Cloudflare CLI
+### 1. Authenticate with Cloudflare CLI
 ```bash
 pnpm wrangler login
 ```
 
-### 2. Criar o Bucket R2
+### 2. Create the R2 Bucket
 ```bash
 pnpm wrangler r2 bucket create cloudflare-storage-bucket
 ```
 
-### 3. Configurar a Secret de API Key
-Defina sua chave de API secreta nos servidores da Cloudflare:
+### 3. Set the Secret API Key
+Define your secret API Key on Cloudflare servers:
 ```bash
 pnpm wrangler secret put API_KEY
 ```
-*(Digite sua chave segura quando solicitado)*
+*(Enter your secure key when prompted)*
 
-### 4. (Recomendado) Configurar Domínio Público no R2
-Para que os arquivos públicos não consumam execuções de Worker:
-1. Acesse o **Cloudflare Dashboard** > **R2** > selecione seu bucket `cloudflare-storage-bucket`.
-2. Vá na aba **Settings** > **Public Access**.
-3. Escolha uma das opções:
-   - **Custom Domains**: Conecte seu subdomínio (ex: `media.seusite.com`).
-   - Ou ative **R2.dev subdomain** (URL pública fornecida pela Cloudflare, ex: `https://pub-xxxxxx.r2.dev`).
-4. Atualize o valor de `PUBLIC_URL` no `wrangler.jsonc` (ou via `pnpm wrangler secret put PUBLIC_URL`):
+### 4. (Recommended) Configure Public Domain on R2
+To serve public files directly without Worker invocations:
+1. Go to **Cloudflare Dashboard** > **R2** > select `cloudflare-storage-bucket`.
+2. Open the **Settings** tab > **Public Access**.
+3. Choose either:
+   - **Custom Domains**: Connect your custom domain/subdomain (e.g. `media.yourdomain.com`).
+   - Or enable **R2.dev subdomain** (managed public URL, e.g. `https://pub-xxxxxx.r2.dev`).
+4. Update `PUBLIC_URL` in `wrangler.jsonc` (or run `pnpm wrangler secret put PUBLIC_URL`):
    ```jsonc
    "vars": {
-     "PUBLIC_URL": "https://media.seusite.com"
+     "PUBLIC_URL": "https://media.yourdomain.com"
    }
    ```
 
-### 5. Fazer Deploy
+### 5. Deploy to Production
 ```bash
 pnpm deploy
 ```
-Seu backend estará no ar em segundos! 🚀
+Your serverless storage backend will be live in seconds! 🚀
 
 ---
 
-## 📖 Referência da API
+## 📖 API Reference
 
-### 1. Upload de Arquivo
-Salva um arquivo no bucket R2 e retorna a URL pública ou privada.
+### 1. Upload File
+Uploads a file to R2 and returns its public or private URL.
 
-- **Método**: `POST`
-- **Rota**: `/upload`
+- **Method**: `POST`
+- **Route**: `/upload`
 - **Headers**:
-  - `X-API-Key: <sua-api-key>` ou `Authorization: Bearer <sua-api-key>`
+  - `X-API-Key: <your-api-key>` or `Authorization: Bearer <your-api-key>`
   - `Content-Type: multipart/form-data`
-- **Campos do Formulário (`multipart/form-data`)**:
-  | Campo | Tipo | Obrigatório | Descrição |
+- **Form Data Fields (`multipart/form-data`)**:
+  | Field | Type | Required | Description |
   |---|---|---|---|
-  | `file` (ou `image`) | File | **Sim** | O arquivo binário a ser enviado |
-  | `folder` | String | Não | Subpasta/prefixo (ex: `avatars`, `posts`) |
-  | `preserveName` | Boolean | Não | Se `true`, mantém o nome original no sufixo (ex: `hash_original.png`) |
-  | `customName` | String | Não | Define um caminho/nome exato manual |
-  | `private` | Boolean | Não | Se `true`, salva como arquivo privado acessível apenas com API Key |
+  | `file` (or `image`) | File | **Yes** | The binary file to upload |
+  | `folder` | String | No | Target subfolder/prefix (e.g. `avatars`, `posts`) |
+  | `preserveName` | Boolean | No | If `true`, preserves the original filename as suffix (`hash_filename.png`) |
+  | `customName` | String | No | Exact manual key/name path |
+  | `private` | Boolean | No | If `true`, marks file as private (accessible only with API Key or Signed URL) |
 
-#### Exemplo de Resposta de Sucesso (`201 Created`):
+#### Example Success Response (`201 Created`):
 ```json
 {
   "success": true,
   "data": {
-    "key": "avatars/2026/10/a8Z9xQ2L_perfil.webp",
-    "url": "https://media.seusite.com/avatars/2026/10/a8Z9xQ2L_perfil.webp",
+    "key": "avatars/2026/10/a8Z9xQ2L_profile.webp",
+    "url": "https://media.yourdomain.com/avatars/2026/10/a8Z9xQ2L_profile.webp",
     "size": 65420,
     "mimeType": "image/webp",
-    "originalName": "perfil.webp",
+    "originalName": "profile.webp",
     "isPrivate": false,
     "uploadedAt": "2026-10-29T09:15:00.000Z"
   }
@@ -178,29 +183,29 @@ Salva um arquivo no bucket R2 e retorna a URL pública ou privada.
 
 ---
 
-### 2. Listar Arquivos
-Lista arquivos salvos no bucket R2 com paginação.
+### 2. List Files
+Lists files stored in the R2 bucket with cursor-based pagination.
 
-- **Método**: `GET`
-- **Rota**: `/api/files`
-- **Headers**: `X-API-Key: <sua-api-key>`
-- **Query Params**:
-  - `limit`: Quantidade máxima (padrão: 20, máx: 100)
-  - `cursor`: Token de paginação para a próxima página
-  - `prefix`: Filtrar por pasta ou prefixo (ex: `avatars/`)
+- **Method**: `GET`
+- **Route**: `/api/files`
+- **Headers**: `X-API-Key: <your-api-key>`
+- **Query Parameters**:
+  - `limit`: Maximum items per page (default: 20, max: 100)
+  - `cursor`: Pagination token for the next page
+  - `prefix`: Filter by folder or prefix (e.g. `avatars/`)
 
-#### Exemplo de Resposta:
+#### Example Response:
 ```json
 {
   "success": true,
   "data": {
     "objects": [
       {
-        "key": "avatars/2026/10/a8Z9xQ2L_perfil.webp",
+        "key": "avatars/2026/10/a8Z9xQ2L_profile.webp",
         "size": 65420,
         "uploadedAt": "2026-10-29T09:15:00.000Z",
         "mimeType": "image/webp",
-        "url": "https://media.seusite.com/avatars/2026/10/a8Z9xQ2L_perfil.webp",
+        "url": "https://media.yourdomain.com/avatars/2026/10/a8Z9xQ2L_profile.webp",
         "isPrivate": false
       }
     ],
@@ -212,102 +217,102 @@ Lista arquivos salvos no bucket R2 com paginação.
 
 ---
 
-### 3. Obter Metadados do Arquivo
-- **Método**: `GET`
-- **Rota**: `/api/files/:key+/meta`
-- **Headers**: `X-API-Key: <sua-api-key>`
+### 3. Get File Metadata
+- **Method**: `GET`
+- **Route**: `/api/files/:key+/meta`
+- **Headers**: `X-API-Key: <your-api-key>`
 
 ---
 
-### 4. Deletar Arquivo
-Remove um arquivo do bucket R2.
+### 4. Delete File
+Deletes a file from the R2 bucket.
 
-- **Método**: `DELETE`
-- **Rota**: `/api/files/:key+`
-- **Headers**: `X-API-Key: <sua-api-key>`
+- **Method**: `DELETE`
+- **Route**: `/api/files/:key+`
+- **Headers**: `X-API-Key: <your-api-key>`
 
-#### Exemplo de Resposta:
+#### Example Response:
 ```json
 {
   "success": true,
   "data": {
     "message": "File deleted successfully",
-    "key": "avatars/2026/10/a8Z9xQ2L_perfil.webp"
+    "key": "avatars/2026/10/a8Z9xQ2L_profile.webp"
   }
 }
 ```
 
 ---
 
-### 5. Acesso a Arquivos Privados & URLs Assinadas
-Se você realizou o upload com `private=true`, o arquivo fica protegido e não pode ser acessado publicamente.
+### 5. Private Files & Signed URLs
+If you upload with `private=true`, the file is protected and cannot be accessed publicly.
 
-Existem duas maneiras seguras de acessar:
-1. **Via URL Assinada (Recomendado para Usuários Finais)**:
-   - Gere uma URL temporária via `POST /api/signed-url` (com token HMAC e expiração).
-   - O link retornado tem o formato `https://sua-api.com/private/arquivo.pdf?token=...&expires=1740000000` e pode ser aberto no navegador sem expor sua API Key.
-2. **Via API Key (Para Seus Próprios Servidores)**:
-   - Requisição direta `GET /private/:key+` enviando o header `X-API-Key: <sua-chave>`.
+Two secure access methods:
+1. **Via Signed URL (Recommended for End Users)**:
+   - Generate a temporary signed link via `POST /api/signed-url` (HMAC token + expiration).
+   - Format: `https://your-api.com/private/file.pdf?token=...&expires=1740000000` (can be opened in any browser without leaking your master API Key).
+2. **Via API Key (For Backend-to-Backend Access)**:
+   - Request `GET /private/:key+` directly with `X-API-Key: <your-key>` header.
 
 ---
 
-### 6. Gerar URL Assinada (Signed URL)
-Gera uma URL temporária com assinatura criptográfica HMAC-SHA256 para permitir que clientes baixem um arquivo privado.
+### 6. Generate Signed URL
+Generates a temporary HMAC-SHA256 signed URL for a private file.
 
-- **Método**: `POST`
-- **Rota**: `/api/signed-url`
-- **Headers**: `X-API-Key: <sua-api-key>`, `Content-Type: application/json`
+- **Method**: `POST`
+- **Route**: `/api/signed-url`
+- **Headers**: `X-API-Key: <your-api-key>`, `Content-Type: application/json`
 - **Body**:
   ```json
   {
-    "key": "private/faturas/2026/recibo.pdf",
+    "key": "private/invoices/2026/receipt.pdf",
     "expiresInSeconds": 3600
   }
   ```
 
 ---
 
-### 7. Deleção em Lote (Batch Delete)
-Remove dezenas ou centenas de arquivos do bucket R2 em uma única chamada.
+### 7. Batch Delete
+Deletes multiple files in a single request.
 
-- **Método**: `POST`
-- **Rota**: `/api/files/batch-delete`
-- **Headers**: `X-API-Key: <sua-api-key>`, `Content-Type: application/json`
+- **Method**: `POST`
+- **Route**: `/api/files/batch-delete`
+- **Headers**: `X-API-Key: <your-api-key>`, `Content-Type: application/json`
 - **Body**:
   ```json
   {
     "keys": [
-      "avatars/2026/10/foto1.png",
-      "avatars/2026/10/foto2.png"
+      "avatars/2026/10/photo1.png",
+      "avatars/2026/10/photo2.png"
     ]
   }
   ```
 
 ---
 
-## 📦 Snippets Prontos por Linguagem (Copy-Paste)
+## 📦 Ready-to-Use Snippets by Language (Copy-Paste)
 
-Em vez de forçar a instalação de pacotes externos pesados, você pode copiar os snippets nativos prontos diretamente para o seu projeto:
+Instead of requiring heavy third-party packages, copy native snippets directly into your projects:
 
-| Linguagem | Arquivo | Frameworks / Runtimes Suportados |
+| Language | File | Supported Frameworks & Runtimes |
 | :--- | :--- | :--- |
 | **TypeScript / JS** | [`snippets/storage.ts`](snippets/storage.ts) | Next.js (App Router / Server Actions), Remix, Astro, Node 18+, Bun |
 | **Python** | [`snippets/storage.py`](snippets/storage.py) | FastAPI, Django, Flask, Celery |
-| **PHP** | [`snippets/Storage.php`](snippets/Storage.php) | Laravel, Symfony, WordPress, PHP 8+ nativo |
+| **PHP** | [`snippets/Storage.php`](snippets/Storage.php) | Laravel, Symfony, WordPress, PHP 8+ native |
 | **Go** | [`snippets/storage.go`](snippets/storage.go) | Gin, Fiber, Chi, Go Standard Library |
-| **C# (.NET)** | [`snippets/EdgeKitStorage.cs`](snippets/EdgeKitStorage.cs) | ASP.NET Core, Blazor, .NET 6/7/8+ nativo |
-| **Java** | [`snippets/EdgeKitStorage.java`](snippets/EdgeKitStorage.java) | Spring Boot, Quarkus, Micronaut, Java 17+ nativo |
+| **C# (.NET)** | [`snippets/EdgeKitStorage.cs`](snippets/EdgeKitStorage.cs) | ASP.NET Core, Blazor, .NET 6/7/8+ native |
+| **Java** | [`snippets/EdgeKitStorage.java`](snippets/EdgeKitStorage.java) | Spring Boot, Quarkus, Micronaut, Java 17+ native |
 | **Rust** | [`snippets/storage.rs`](snippets/storage.rs) | Axum, Actix-web, Tauri, Tokio |
 | **HTTP / cURL** | [`docs/integrations.md`](docs/integrations.md) | Shell, Postman, Webhooks, Scripts |
 
-> 📖 **Documentação Completa de Integração**: Consulte [`docs/integrations.md`](docs/integrations.md) para tutoriais passo a passo com exemplos em Next.js, FastAPI, Laravel, ASP.NET Core, Spring Boot, Axum e Go.
+> 📖 **Full Integration Guide**: Check [`docs/integrations.md`](docs/integrations.md) for step-by-step tutorials with examples in Next.js, FastAPI, Laravel, ASP.NET Core, Spring Boot, Axum, and Go.
 
 ---
 
-### Exemplo Rápido em TypeScript / Next.js
+### Quick Example in TypeScript / Next.js
 
 ```typescript
-// lib/storage.ts (ou copie de snippets/storage.ts)
+// lib/storage.ts (or copy from snippets/storage.ts)
 import { createStorageClient } from '@/lib/storage';
 
 const storage = createStorageClient({
@@ -315,37 +320,37 @@ const storage = createStorageClient({
   apiKey: process.env.EDGEKIT_STORAGE_API_KEY!,
 });
 
-// 1. Upload de arquivo
+// 1. Upload file
 const { url, key } = await storage.upload(file, { folder: 'avatars', preserveName: true });
 
-// 2. Link temporário para arquivo privado
-const { url: signedUrl } = await storage.getSignedUrl('private/fatura.pdf', { expiresInSeconds: 3600 });
+// 2. Temporary signed URL for private file
+const { url: signedUrl } = await storage.getSignedUrl('private/invoice.pdf', { expiresInSeconds: 3600 });
 ```
 
-### Exemplo Rápido em cURL
+### Quick Example in cURL
 
 ```bash
-curl -X POST "https://storage.seudominio.com/upload" \
-  -H "X-API-Key: sua-chave-aqui" \
-  -F "file=@/caminho/para/imagem.jpg" \
-  -F "folder=galeria"
+curl -X POST "https://storage.yourdomain.com/upload" \
+  -H "X-API-Key: your-api-key" \
+  -F "file=@/path/to/image.jpg" \
+  -F "folder=gallery"
 ```
 
 ---
 
-## ⚙️ Variáveis de Ambiente e Configurações
+## ⚙️ Environment Variables & Configuration
 
-| Variável | Tipo | Padrão | Descrição |
+| Variable | Type | Default | Description |
 |---|---|---|---|
-| `API_KEY` | Secret | *Obrigatório* | Chave de segurança para upload/listagem/deleção |
-| `PUBLIC_URL` | String | `""` | Domínio público do R2 (ex: `https://media.seusite.com`). Se vazio, usa rota `/f/:key` do Worker |
-| `ALLOWED_MIME_TYPES` | String | `image/*,application/pdf` | Tipos permitidos separados por vírgula (`*` para todos) |
-| `MAX_FILE_SIZE_MB` | String | `25` | Tamanho máximo permitido de upload em MB |
-| `ENABLE_WORKER_FALLBACK_STREAM` | String | `true` | Se `true`, permite que `/f/:key` sirva arquivos caso não haja Custom Domain |
-| `ALLOWED_ORIGINS` | String | `""` | Domínios permitidos no CORS (ex: `http://localhost:3000,https://app.com`). Vazio permite requisições diretas |
+| `API_KEY` | Secret | *Required* | Master API Key for upload, listing, and deletion |
+| `PUBLIC_URL` | String | `""` | R2 public domain (e.g. `https://media.yourdomain.com`). If empty, uses `/f/:key` Worker route |
+| `ALLOWED_MIME_TYPES` | String | `image/*,application/pdf` | Comma-separated allowed MIME types (`*` allows all) |
+| `MAX_FILE_SIZE_MB` | String | `25` | Maximum allowed file upload size in MB |
+| `ENABLE_WORKER_FALLBACK_STREAM` | String | `true` | If `true`, serves `/f/:key` when no custom public domain is configured |
+| `ALLOWED_ORIGINS` | String | `""` | Allowed CORS origins (e.g. `http://localhost:3000,https://app.com`). Empty allows direct requests |
 
 ---
 
-## 📄 Licença
+## 📄 License
 
-Este projeto é open-source licenciado sob a [MIT License](LICENSE).
+This project is open-source licensed under the [MIT License](LICENSE).

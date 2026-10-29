@@ -12,7 +12,6 @@ import {
 } from './ui/dropdown-menu';
 import {
   AlertDialog,
-  AlertDialogTrigger,
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -21,7 +20,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from './ui/alert-dialog';
-import { formatBytes, formatDate } from '../lib/utils';
+import { formatBytes } from '../lib/utils';
+import { useI18n } from '../i18n';
 import type { StorageObject } from '../types';
 
 interface FileCardProps {
@@ -39,6 +39,7 @@ export const FileCard: React.FC<FileCardProps> = ({
   onDelete,
   onPreview,
 }) => {
+  const { t, formatDate } = useI18n();
   const [copied, setCopied] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -83,7 +84,7 @@ export const FileCard: React.FC<FileCardProps> = ({
             <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:scale-105 transition-transform">
               <FileText className="h-10 w-10 text-destructive/80" />
               <span className="text-[10px] font-medium mt-1 uppercase tracking-wider text-muted-foreground">
-                Documento PDF
+                {t.fileCard.pdfDocument}
               </span>
             </div>
           ) : (
@@ -103,7 +104,7 @@ export const FileCard: React.FC<FileCardProps> = ({
                 checked={Boolean(isSelected)}
                 onChange={() => onToggleSelect(object.key)}
                 className="h-4 w-4 rounded border-border accent-primary cursor-pointer transition-opacity"
-                title="Selecionar para ações em lote"
+                title={t.fileCard.selectTooltip}
               />
             )}
             <Badge variant="secondary" className="backdrop-blur bg-background/80 text-[10px] py-0 pointer-events-none">
@@ -112,7 +113,7 @@ export const FileCard: React.FC<FileCardProps> = ({
             {object.isPrivate && (
               <Badge variant="outline" className="backdrop-blur bg-background/80 text-[10px] py-0 border-border text-amber-500 pointer-events-none">
                 <Lock className="h-2.5 w-2.5 mr-0.5" />
-                Privado
+                {t.fileCard.privateBadge}
               </Badge>
             )}
           </div>
@@ -149,12 +150,12 @@ export const FileCard: React.FC<FileCardProps> = ({
               {copied ? (
                 <>
                   <Check className="h-3.5 w-3.5 text-emerald-500" />
-                  <span className="text-emerald-500 font-medium">Copiado</span>
+                  <span className="text-emerald-500 font-medium">{t.fileCard.copied}</span>
                 </>
               ) : (
                 <>
                   <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>Copiar URL</span>
+                  <span>{t.fileCard.copyUrl}</span>
                 </>
               )}
             </Button>
@@ -164,7 +165,7 @@ export const FileCard: React.FC<FileCardProps> = ({
               size="icon"
               className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
               onClick={() => window.open(object.url, '_blank')}
-              title="Abrir em nova aba"
+              title={t.fileCard.openNewTab}
             >
               <ExternalLink className="h-3.5 w-3.5" />
             </Button>
@@ -176,7 +177,7 @@ export const FileCard: React.FC<FileCardProps> = ({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-                  title="Mais ações"
+                  title={t.fileCard.moreActions}
                 />
               }>
                 <MoreVertical className="h-3.5 w-3.5" />
@@ -184,15 +185,15 @@ export const FileCard: React.FC<FileCardProps> = ({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => onPreview(object)}>
                   <FileText className="h-4 w-4" />
-                  <span>Ver Detalhes</span>
+                  <span>{t.fileCard.viewDetails}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleCopy()}>
                   <Copy className="h-4 w-4" />
-                  <span>Copiar Link Direto</span>
+                  <span>{t.fileCard.copyDirectLink}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => window.open(object.url, '_blank')}>
                   <Download className="h-4 w-4" />
-                  <span>Abrir / Baixar</span>
+                  <span>{t.fileCard.openOrDownload}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -200,7 +201,7 @@ export const FileCard: React.FC<FileCardProps> = ({
                   className="text-destructive focus:text-destructive focus:bg-destructive/10"
                 >
                   <Trash2 className="h-4 w-4" />
-                  <span>Excluir Arquivo</span>
+                  <span>{t.fileCard.deleteFile}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -212,16 +213,16 @@ export const FileCard: React.FC<FileCardProps> = ({
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Arquivo do R2</AlertDialogTitle>
+            <AlertDialogTitle>{t.fileCard.deleteModal.title}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir permanentemente o arquivo <strong>{fileName}</strong>? Esta ação não pode ser desfeita.
+              {t.fileCard.deleteModal.description(fileName)}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>{t.fileCard.deleteModal.cancel}</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting}>
               {isDeleting && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
-              Excluir Permanentemente
+              {t.fileCard.deleteModal.confirm}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

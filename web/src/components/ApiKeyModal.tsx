@@ -12,6 +12,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Alert, AlertDescription } from './ui/alert';
+import { useI18n } from '../i18n';
 
 interface ApiKeyModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
   onLoginSuccess,
   isAuthenticated,
 }) => {
+  const { t } = useI18n();
   const [inputVal, setInputVal] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputVal.trim()) {
-      setErrorMsg('Por favor, informe a chave de API.');
+      setErrorMsg(t.apiKeyModal.emptyError);
       return;
     }
 
@@ -57,10 +59,10 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
         onLoginSuccess();
         onClose();
       } else {
-        setErrorMsg(json.error?.message || 'Chave de API inválida (401).');
+        setErrorMsg(json.error?.message || t.apiKeyModal.invalidError);
       }
     } catch {
-      setErrorMsg('Falha de conexão com o servidor.');
+      setErrorMsg(t.apiKeyModal.connectionError);
     } finally {
       setLoading(false);
     }
@@ -76,10 +78,10 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
             </div>
             <div>
               <DialogTitle>
-                {isAuthenticated ? 'Sessão Ativa' : 'Acesso ao EdgeKit Storage'}
+                {isAuthenticated ? t.apiKeyModal.titleActive : t.apiKeyModal.titleInactive}
               </DialogTitle>
               <DialogDescription>
-                Autenticação Segura via Cookie HttpOnly
+                {t.apiKeyModal.description}
               </DialogDescription>
             </div>
           </div>
@@ -87,7 +89,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
 
         <form onSubmit={handleLogin} className="space-y-4 pt-2">
           <div className="space-y-1.5">
-            <Label htmlFor="apiKeyInput">Secret API Key</Label>
+            <Label htmlFor="apiKeyInput">{t.apiKeyModal.inputLabel}</Label>
             <Input
               id="apiKeyInput"
               type="password"
@@ -96,7 +98,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                 setInputVal(e.target.value);
                 setErrorMsg(null);
               }}
-              placeholder="Digite ou cole sua API_KEY..."
+              placeholder={t.apiKeyModal.inputPlaceholder}
               autoFocus
               className="font-mono text-sm"
             />
@@ -105,7 +107,11 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
           <Alert>
             <ShieldCheck className="h-4 w-4 text-emerald-500" />
             <AlertDescription className="text-xs">
-              Sua chave é salva em um <span className="text-foreground font-medium">Cookie HttpOnly Seguro</span>. O código client-side não tem acesso à chave, garantindo proteção contra roubo via XSS.
+              {t.apiKeyModal.securityNotice}{' '}
+              <span className="text-foreground font-medium">
+                {t.apiKeyModal.securityNoticeHighlight}
+              </span>
+              {t.apiKeyModal.securityNoticeEnd}
             </AlertDescription>
           </Alert>
 
@@ -124,7 +130,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                 size="sm"
                 onClick={onClose}
               >
-                Cancelar
+                {t.apiKeyModal.cancel}
               </Button>
             )}
             <Button
@@ -135,7 +141,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
               className="gap-1.5"
             >
               {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              <span>Autenticar</span>
+              <span>{t.apiKeyModal.authenticate}</span>
             </Button>
           </DialogFooter>
         </form>

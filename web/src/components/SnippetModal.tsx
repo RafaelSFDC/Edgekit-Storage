@@ -10,6 +10,7 @@ import {
 } from './ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { Button } from './ui/button';
+import { useI18n } from '../i18n';
 
 interface SnippetModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface SnippetModalProps {
 }
 
 export const SnippetModal: React.FC<SnippetModalProps> = ({ isOpen, onClose }) => {
+  const { t } = useI18n();
   const [copied, setCopied] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -24,11 +26,11 @@ export const SnippetModal: React.FC<SnippetModalProps> = ({ isOpen, onClose }) =
   const currentOrigin =
     typeof window !== 'undefined'
       ? window.location.origin
-      : 'https://storage-api.seudominio.com';
+      : 'https://storage-api.yourdomain.com';
 
   const clientCode = `/**
  * EdgeKit Storage Client (Zero-Dependency)
- * Salve em lib/edgekit-storage.ts
+ * Save to lib/edgekit-storage.ts
  */
 
 export interface EdgeKitConfig {
@@ -63,7 +65,7 @@ export function createEdgeKitStorage(config: EdgeKitConfig) {
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.error?.message || 'Falha no upload');
+        throw new Error(json.error?.message || 'Upload failed');
       }
       return json.data;
     },
@@ -104,7 +106,7 @@ export function createEdgeKitStorage(config: EdgeKitConfig) {
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.error?.message || 'Falha ao gerar URL assinada');
+        throw new Error(json.error?.message || 'Failed to generate signed URL');
       }
       return json.data;
     },
@@ -131,7 +133,7 @@ const storage = createEdgeKitStorage({
   apiKey: process.env.EDGEKIT_STORAGE_API_KEY!,
 });
 
-// Exemplo: Upload no Next.js Server Action ou Route Handler
+// Example: Upload in Next.js Server Action or Route Handler
 export async function uploadAvatar(formData: FormData) {
   const file = formData.get('file') as File;
   
@@ -140,15 +142,15 @@ export async function uploadAvatar(formData: FormData) {
     preserveName: true,
   });
 
-  console.log('URL da Imagem:', uploaded.url);
-  console.log('Chave R2:', uploaded.key);
+  console.log('File URL:', uploaded.url);
+  console.log('R2 Key:', uploaded.key);
   return uploaded;
 }
 
-// Exemplo: Gerar link temporário para arquivo privado (sem expor API Key)
+// Example: Generate temporary signed link for private file
 export async function getPrivateInvoiceUrl(invoiceKey: string) {
   const { url } = await storage.getSignedUrl(invoiceKey, {
-    expiresInSeconds: 3600, // 1 hora
+    expiresInSeconds: 3600, // 1 hour
   });
   return url;
 }
@@ -169,9 +171,9 @@ export async function getPrivateInvoiceUrl(invoiceKey: string) {
               <Layers className="h-4 w-4" />
             </div>
             <div>
-              <DialogTitle>Integração EdgeKit Storage</DialogTitle>
+              <DialogTitle>{t.snippetModal.title}</DialogTitle>
               <DialogDescription>
-                Zero dependências externas, TypeScript nativo e Fetch padrão
+                {t.snippetModal.subtitle}
               </DialogDescription>
             </div>
           </div>
@@ -182,11 +184,11 @@ export async function getPrivateInvoiceUrl(invoiceKey: string) {
             <TabsList className="w-fit">
               <TabsTrigger value="client" className="gap-1.5 text-xs">
                 <Code2 className="h-3.5 w-3.5" />
-                <span>lib/edgekit-storage.ts</span>
+                <span>{t.snippetModal.tabClient}</span>
               </TabsTrigger>
               <TabsTrigger value="usage" className="gap-1.5 text-xs">
                 <Terminal className="h-3.5 w-3.5" />
-                <span>Exemplo de Uso</span>
+                <span>{t.snippetModal.tabUsage}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -204,12 +206,12 @@ export async function getPrivateInvoiceUrl(invoiceKey: string) {
                   {copied === 'client' ? (
                     <>
                       <Check className="h-3.5 w-3.5 text-emerald-500" />
-                      <span className="text-emerald-500">Copiado</span>
+                      <span className="text-emerald-500">{t.snippetModal.copied}</span>
                     </>
                   ) : (
                     <>
                       <Copy className="h-3.5 w-3.5" />
-                      <span>Copiar Código</span>
+                      <span>{t.snippetModal.copyCode}</span>
                     </>
                   )}
                 </Button>
@@ -230,12 +232,12 @@ export async function getPrivateInvoiceUrl(invoiceKey: string) {
                   {copied === 'usage' ? (
                     <>
                       <Check className="h-3.5 w-3.5 text-emerald-500" />
-                      <span className="text-emerald-500">Copiado</span>
+                      <span className="text-emerald-500">{t.snippetModal.copied}</span>
                     </>
                   ) : (
                     <>
                       <Copy className="h-3.5 w-3.5" />
-                      <span>Copiar Código</span>
+                      <span>{t.snippetModal.copyCode}</span>
                     </>
                   )}
                 </Button>
@@ -246,10 +248,10 @@ export async function getPrivateInvoiceUrl(invoiceKey: string) {
 
         <DialogFooter className="pt-4 border-t border-border flex items-center justify-between sm:justify-between">
           <span className="text-xs text-muted-foreground">
-            Compatível com Next.js, Node.js, Remix, Vite, Astro e Cloudflare Workers.
+            {t.snippetModal.footerText}
           </span>
           <Button variant="outline" size="sm" onClick={onClose}>
-            Fechar
+            {t.snippetModal.close}
           </Button>
         </DialogFooter>
       </DialogContent>

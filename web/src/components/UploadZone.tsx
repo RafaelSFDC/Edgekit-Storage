@@ -9,6 +9,7 @@ import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { formatBytes } from '../lib/utils';
+import { useI18n } from '../i18n';
 import type { UploadItem, StorageObject } from '../types';
 
 interface UploadZoneProps {
@@ -22,6 +23,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
   onUploadSuccess,
   onOpenKeyModal,
 }) => {
+  const { t } = useI18n();
   const [isDragging, setIsDragging] = useState(false);
   const [folder, setFolder] = useState('');
   const [preserveName, setPreserveName] = useState(true);
@@ -72,7 +74,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
         );
         onUploadSuccess(json.data);
       } else {
-        const errorMsg = json.error?.message || 'Falha no upload';
+        const errorMsg = json.error?.message || t.upload.failedUpload;
         setQueue((prev) =>
           prev.map((q) =>
             q.id === item.id ? { ...q, status: 'error', error: errorMsg } : q
@@ -83,7 +85,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
       setQueue((prev) =>
         prev.map((q) =>
           q.id === item.id
-            ? { ...q, status: 'error', error: 'Erro de rede ao enviar arquivo' }
+            ? { ...q, status: 'error', error: t.upload.networkError }
             : q
         )
       );
@@ -158,11 +160,11 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
             <UploadCloud className="h-6 w-6" />
           </div>
           <p className="text-sm font-medium text-foreground">
-            Arraste arquivos aqui ou{' '}
-            <span className="text-primary underline underline-offset-4">procure no dispositivo</span>
+            {t.upload.dragTitle}{' '}
+            <span className="text-primary underline underline-offset-4">{t.upload.browseDevice}</span>
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Suporta imagens (PNG, JPG, WebP, AVIF, GIF, SVG) e PDFs de até 25 MB
+            {t.upload.supportedFormats}
           </p>
         </div>
 
@@ -175,7 +177,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
               type="text"
               value={folder}
               onChange={(e) => setFolder(e.target.value)}
-              placeholder="Prefixo/Subpasta (ex: avatars)..."
+              placeholder={t.upload.folderPlaceholder}
               className="pl-9 h-9 text-xs"
             />
           </div>
@@ -188,7 +190,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
               onCheckedChange={(checked) => setPreserveName(Boolean(checked))}
             />
             <Label htmlFor="preserveName" className="cursor-pointer text-xs font-normal">
-              Preservar Nome Original
+              {t.upload.preserveOriginalName}
             </Label>
           </div>
 
@@ -201,7 +203,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
             />
             <Label htmlFor="private" className="cursor-pointer text-xs font-normal flex items-center gap-1.5">
               <Lock className={`h-3 w-3 ${isPrivate ? 'text-amber-500' : 'text-muted-foreground'}`} />
-              <span>Arquivo Privado</span>
+              <span>{t.upload.privateFile}</span>
             </Label>
           </div>
         </div>
@@ -212,7 +214,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
             <Separator />
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Fila de Uploads ({queue.length})
+                {t.upload.queueTitle(queue.length)}
               </h4>
               <Button
                 variant="ghost"
@@ -220,7 +222,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                 onClick={() => setQueue([])}
                 className="h-7 text-xs text-muted-foreground hover:text-foreground"
               >
-                Limpar fila
+                {t.upload.clearQueue}
               </Button>
             </div>
 
@@ -252,12 +254,12 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                           <span>{formatBytes(item.file.size)}</span>
                           {item.status === 'uploading' && (
                             <Badge variant="outline" className="text-[10px] py-0">
-                              <Loader2 className="h-2.5 w-2.5 animate-spin mr-1" /> Enviando
+                              <Loader2 className="h-2.5 w-2.5 animate-spin mr-1" /> {t.upload.uploading}
                             </Badge>
                           )}
                           {item.status === 'success' && (
                             <Badge variant="secondary" className="text-[10px] py-0 text-emerald-500">
-                              <CheckCircle2 className="h-2.5 w-2.5 mr-1" /> Concluído
+                              <CheckCircle2 className="h-2.5 w-2.5 mr-1" /> {t.upload.completed}
                             </Badge>
                           )}
                           {item.status === 'error' && (
@@ -279,12 +281,12 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
                         {copiedKey === item.id ? (
                           <>
                             <Check className="h-3.5 w-3.5 text-emerald-500" />
-                            <span className="text-emerald-500">Copiado</span>
+                            <span className="text-emerald-500">{t.upload.copied}</span>
                           </>
                         ) : (
                           <>
                             <Copy className="h-3.5 w-3.5" />
-                            <span>Copiar URL</span>
+                            <span>{t.upload.copyUrl}</span>
                           </>
                         )}
                       </Button>
