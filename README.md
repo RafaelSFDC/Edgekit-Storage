@@ -285,93 +285,47 @@ Remove dezenas ou centenas de arquivos do bucket R2 em uma única chamada.
 
 ---
 
-## 📦 Snippet do Cliente estilo shadcn (Zero Dependências)
+## 📦 Snippets Prontos por Linguagem (Copy-Paste)
 
-Em vez de forçar a instalação de um pacote NPM externo com conflito de versões, você pode simplesmente copiar o arquivo [`snippets/storage.ts`](snippets/storage.ts) para o seu projeto (ex: `lib/storage.ts`).
+Em vez de forçar a instalação de pacotes externos pesados, você pode copiar os snippets nativos prontos diretamente para o seu projeto:
 
-Ele usa **Fetch nativo do TypeScript** e funciona imediatamente em **Next.js (App Router / Server Actions), Remix, Astro, Node.js 18+, Bun e Deno**:
+| Linguagem | Arquivo | Frameworks / Runtimes Suportados |
+| :--- | :--- | :--- |
+| **TypeScript / JS** | [`snippets/storage.ts`](snippets/storage.ts) | Next.js (App Router / Server Actions), Remix, Astro, Node 18+, Bun |
+| **Python** | [`snippets/storage.py`](snippets/storage.py) | FastAPI, Django, Flask, Celery |
+| **PHP** | [`snippets/Storage.php`](snippets/Storage.php) | Laravel, Symfony, WordPress, PHP 8+ nativo |
+| **Go** | [`snippets/storage.go`](snippets/storage.go) | Gin, Fiber, Chi, Go Standard Library |
+| **C# (.NET)** | [`snippets/EdgeKitStorage.cs`](snippets/EdgeKitStorage.cs) | ASP.NET Core, Blazor, .NET 6/7/8+ nativo |
+| **Java** | [`snippets/EdgeKitStorage.java`](snippets/EdgeKitStorage.java) | Spring Boot, Quarkus, Micronaut, Java 17+ nativo |
+| **Rust** | [`snippets/storage.rs`](snippets/storage.rs) | Axum, Actix-web, Tauri, Tokio |
+| **HTTP / cURL** | [`docs/integrations.md`](docs/integrations.md) | Shell, Postman, Webhooks, Scripts |
 
-```typescript
-// lib/storage.ts (ou copie direto do botão 'Snippet' na Dashboard)
-import { createStorageClient } from '@/lib/storage';
-
-const storage = createStorageClient({
-  baseUrl: process.env.STORAGE_BASE_URL!, // ex: https://storage-api.seudominio.com
-  apiKey: process.env.STORAGE_API_KEY!,
-});
-
-// 1. Upload de arquivo
-const file = formData.get('file') as File;
-const { url, key } = await storage.upload(file, {
-  folder: 'avatars',
-  preserveName: true,
-});
-
-// 2. Gerar Signed URL para download seguro de arquivo privado
-const { url: signedUrl } = await storage.getSignedUrl('private/faturas/doc.pdf', {
-  expiresInSeconds: 3600, // válido por 1 hora
-});
-
-// 3. Listar arquivos com paginação
-const { objects, cursor, truncated } = await storage.list({ limit: 50 });
-
-// 4. Deleção individual ou em lote
-await storage.delete('avatars/2026/10/clx_avatar.png');
-await storage.deleteMany(['foto1.png', 'foto2.png']);
-```
+> 📖 **Documentação Completa de Integração**: Consulte [`docs/integrations.md`](docs/integrations.md) para tutoriais passo a passo com exemplos em Next.js, FastAPI, Laravel, ASP.NET Core, Spring Boot, Axum e Go.
 
 ---
 
-## 💻 Exemplos de Integração em Outros Backends
-
-### Exemplo em Node.js / TypeScript (Fetch Nativo)
+### Exemplo Rápido em TypeScript / Next.js
 
 ```typescript
-import fs from 'node:fs';
+// lib/storage.ts (ou copie de snippets/storage.ts)
+import { createStorageClient } from '@/lib/storage';
 
-async function uploadImage() {
-  const fileBlob = new Blob([fs.readFileSync('./foto.jpg')], { type: 'image/jpeg' });
-  
-  const form = new FormData();
-  form.append('file', fileBlob, 'foto.jpg');
-  form.append('folder', 'produtos');
-  form.append('preserveName', 'true');
+const storage = createStorageClient({
+  baseUrl: process.env.EDGEKIT_STORAGE_URL!,
+  apiKey: process.env.EDGEKIT_STORAGE_API_KEY!,
+});
 
-  const res = await fetch('https://storage-api.seudominio.com/upload', {
-    method: 'POST',
-    headers: {
-      'X-API-Key': process.env.STORAGE_API_KEY!,
-    },
-    body: form,
-  });
+// 1. Upload de arquivo
+const { url, key } = await storage.upload(file, { folder: 'avatars', preserveName: true });
 
-  const json = await res.json();
-  console.log('URL da Imagem:', json.data.url);
-}
+// 2. Link temporário para arquivo privado
+const { url: signedUrl } = await storage.getSignedUrl('private/fatura.pdf', { expiresInSeconds: 3600 });
 ```
 
-### Exemplo em Python (Requests)
-
-```python
-import os
-import requests
-
-API_URL = "https://storage-api.seudominio.com/upload"
-API_KEY = os.getenv("STORAGE_API_KEY")
-
-with open("foto.png", "rb") as f:
-    files = {"file": ("foto.png", f, "image/png")}
-    data = {"folder": "usuarios", "preserveName": "true"}
-    headers = {"X-API-Key": API_KEY}
-
-    res = requests.post(API_URL, files=files, data=data, headers=headers)
-    print("URL:", res.json()["data"]["url"])
-```
-
-### Exemplo em cURL
+### Exemplo Rápido em cURL
 
 ```bash
-curl -X POST "https://storage-api.seudominio.com/upload" \
+curl -X POST "https://storage.seudominio.com/upload" \
   -H "X-API-Key: sua-chave-aqui" \
   -F "file=@/caminho/para/imagem.jpg" \
   -F "folder=galeria"
@@ -388,6 +342,7 @@ curl -X POST "https://storage-api.seudominio.com/upload" \
 | `ALLOWED_MIME_TYPES` | String | `image/*,application/pdf` | Tipos permitidos separados por vírgula (`*` para todos) |
 | `MAX_FILE_SIZE_MB` | String | `25` | Tamanho máximo permitido de upload em MB |
 | `ENABLE_WORKER_FALLBACK_STREAM` | String | `true` | Se `true`, permite que `/f/:key` sirva arquivos caso não haja Custom Domain |
+| `ALLOWED_ORIGINS` | String | `""` | Domínios permitidos no CORS (ex: `http://localhost:3000,https://app.com`). Vazio permite requisições diretas |
 
 ---
 
