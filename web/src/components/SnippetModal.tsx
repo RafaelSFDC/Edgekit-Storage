@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { X, Copy, Check, Code, Terminal, FileCode } from 'lucide-react';
+import { Copy, Check, Code, Terminal, FileCode } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from './ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
+import { Button } from './ui/button';
 
 interface SnippetModalProps {
   isOpen: boolean;
@@ -8,11 +18,13 @@ interface SnippetModalProps {
 
 export const SnippetModal: React.FC<SnippetModalProps> = ({ isOpen, onClose }) => {
   const [copied, setCopied] = useState<string | null>(null);
-  const [tab, setTab] = useState<'client' | 'usage'>('client');
 
   if (!isOpen) return null;
 
-  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://storage-api.seudominio.com';
+  const currentOrigin =
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : 'https://storage-api.seudominio.com';
 
   const clientCode = `/**
  * Cloudflare Storage Client (Zero-Dependency)
@@ -109,85 +121,98 @@ export async function uploadAvatar(formData: FormData) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-6 relative overflow-hidden flex flex-col max-h-[85vh]">
-        <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
+        <DialogHeader>
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400">
               <FileCode className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-white">Integração Copy-Paste</h2>
-              <p className="text-xs text-zinc-400">Zero dependências NPM, use diretamente no seu app</p>
+              <DialogTitle>Integração Copy-Paste</DialogTitle>
+              <DialogDescription>
+                Zero dependências NPM, use diretamente no seu app TypeScript
+              </DialogDescription>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+        </DialogHeader>
+
+        <div className="flex-1 flex flex-col min-h-0 mt-3">
+          <Tabs defaultValue="client" className="flex-1 flex flex-col">
+            <TabsList className="w-fit">
+              <TabsTrigger value="client" className="gap-1.5">
+                <Code className="w-3.5 h-3.5" />
+                <span>lib/storage.ts</span>
+              </TabsTrigger>
+              <TabsTrigger value="usage" className="gap-1.5">
+                <Terminal className="w-3.5 h-3.5" />
+                <span>Exemplo de Uso</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="client" className="relative flex-1 mt-3 min-h-[300px]">
+              <div className="relative h-full rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+                <pre className="p-4 text-xs font-mono text-zinc-300 overflow-auto h-full max-h-[350px] select-all">
+                  {clientCode}
+                </pre>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleCopy(clientCode, 'client')}
+                  className="absolute top-3 right-3 shadow-md"
+                >
+                  {copied === 'client' ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400">Copiado!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copiar Código</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="usage" className="relative flex-1 mt-3 min-h-[300px]">
+              <div className="relative h-full rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+                <pre className="p-4 text-xs font-mono text-zinc-300 overflow-auto h-full max-h-[350px] select-all">
+                  {usageCode}
+                </pre>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleCopy(usageCode, 'usage')}
+                  className="absolute top-3 right-3 shadow-md"
+                >
+                  {copied === 'usage' ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400">Copiado!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copiar Código</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
 
-        {/* Tab switch */}
-        <div className="flex items-center gap-2 mt-4">
-          <button
-            onClick={() => setTab('client')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-              tab === 'client'
-                ? 'bg-orange-500/10 text-orange-400 border border-orange-500/30'
-                : 'text-zinc-400 hover:text-white bg-zinc-950 border border-zinc-800'
-            }`}
-          >
-            <Code className="w-3.5 h-3.5" />
-            <span>lib/storage.ts</span>
-          </button>
-          <button
-            onClick={() => setTab('usage')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-              tab === 'usage'
-                ? 'bg-orange-500/10 text-orange-400 border border-orange-500/30'
-                : 'text-zinc-400 hover:text-white bg-zinc-950 border border-zinc-800'
-            }`}
-          >
-            <Terminal className="w-3.5 h-3.5" />
-            <span>Exemplo de Uso</span>
-          </button>
-        </div>
-
-        {/* Code Box */}
-        <div className="mt-3 relative flex-1 min-h-[300px] overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
-          <pre className="p-4 text-xs font-mono text-zinc-300 overflow-auto h-full select-all">
-            {tab === 'client' ? clientCode : usageCode}
-          </pre>
-          <button
-            onClick={() => handleCopy(tab === 'client' ? clientCode : usageCode, tab)}
-            className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800/90 hover:bg-zinc-700 text-white rounded-lg text-xs font-medium shadow-md transition-all border border-zinc-700"
-          >
-            {copied === tab ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">Copiado!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5" />
-                <span>Copiar Código</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        <div className="mt-4 pt-3 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
-          <span>Sem travas de dependência, 100% TypeScript e Fetch nativo.</span>
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-750 text-white rounded-lg font-medium transition-colors"
-          >
+        <DialogFooter className="pt-4 border-t border-zinc-800 justify-between items-center sm:justify-between">
+          <span className="text-xs text-zinc-400">
+            Sem travas de dependência, 100% TypeScript e Fetch nativo.
+          </span>
+          <Button variant="outline" size="sm" onClick={onClose}>
             Fechar
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

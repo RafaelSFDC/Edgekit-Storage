@@ -1,5 +1,8 @@
 import React from 'react';
 import { Cloud, ShieldCheck, LogOut, RefreshCw, Code, ExternalLink, Key } from 'lucide-react';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
 
 interface NavbarProps {
   isAuthenticated: boolean;
@@ -33,9 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="font-bold text-lg tracking-tight text-white">
                 Cloudflare Storage
               </span>
-              <span className="px-2 py-0.5 text-[11px] font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-full">
-                R2 Bucket
-              </span>
+              <Badge variant="default">R2 Bucket</Badge>
             </div>
             <p className="text-xs text-zinc-400 hidden sm:block">
               Open-Source Edge Media Backend
@@ -44,61 +45,80 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           {/* Refresh files */}
-          <button
-            onClick={onRefresh}
-            disabled={isLoading || !isAuthenticated}
-            title="Recarregar arquivos"
-            className="p-2 text-zinc-400 hover:text-white bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-orange-400' : ''}`} />
-          </button>
+          <Tooltip>
+            <TooltipTrigger render={
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onRefresh}
+                disabled={isLoading || !isAuthenticated}
+              />
+            }>
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-orange-400' : ''}`} />
+            </TooltipTrigger>
+            <TooltipContent>Recarregar arquivos do R2</TooltipContent>
+          </Tooltip>
 
-          {/* Integration Snippet Button */}
-          <button
+          {/* Snippet Button */}
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onOpenSnippetModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors"
           >
             <Code className="w-3.5 h-3.5 text-orange-400" />
             <span className="hidden sm:inline">Snippet do Cliente</span>
             <span className="sm:hidden">Snippet</span>
-          </button>
+          </Button>
 
           {/* Auth State Button */}
           {isAuthenticated ? (
             <div className="flex items-center gap-1.5">
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950/40 border border-emerald-800/60 rounded-lg text-xs font-medium text-emerald-400">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>HttpOnly Autenticado</span>
-              </div>
-              <button
-                onClick={onLogout}
-                title="Desconectar do Dashboard"
-                className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-950/30 border border-zinc-800 rounded-lg transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+              <Badge variant="success" className="hidden sm:inline-flex py-1 px-2.5">
+                <ShieldCheck className="w-3 h-3 mr-1 text-emerald-400" />
+                <span>HttpOnly Conectado</span>
+              </Badge>
+
+              <Tooltip>
+                <TooltipTrigger render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onLogout}
+                    className="hover:text-red-400 hover:bg-red-950/30"
+                  />
+                }>
+                  <LogOut className="w-4 h-4" />
+                </TooltipTrigger>
+                <TooltipContent>Desconectar sessão</TooltipContent>
+              </Tooltip>
             </div>
           ) : (
-            <button
+            <Button
+              variant="default"
+              size="sm"
               onClick={onOpenKeyModal}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white shadow-md shadow-orange-600/20 transition-all"
             >
               <Key className="w-3.5 h-3.5" />
               <span>Conectar API Key</span>
-            </button>
+            </Button>
           )}
 
-          <a
-            href="/api"
-            target="_blank"
-            rel="noreferrer"
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-800/80 rounded-lg transition-colors"
-          >
-            <span>API</span>
-            <ExternalLink className="w-3 h-3 text-zinc-500" />
-          </a>
+          <Tooltip>
+            <TooltipTrigger render={
+              <Button
+                variant="outline"
+                size="sm"
+                className="hidden md:inline-flex"
+                onClick={() => window.open('/api', '_blank')}
+              />
+            }>
+              <span>API</span>
+              <ExternalLink className="w-3 h-3 text-zinc-500" />
+            </TooltipTrigger>
+            <TooltipContent>Documentação da API</TooltipContent>
+          </Tooltip>
         </div>
       </div>
     </header>
