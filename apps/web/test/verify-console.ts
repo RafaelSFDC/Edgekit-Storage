@@ -1,6 +1,15 @@
 import assert from 'node:assert';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '../src/lib/query-client';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '../src/components/ui/select';
 import { FilesDataTable } from '../src/components/console/FilesDataTable';
 import { FilePreviewDialog } from '../src/components/console/FilePreviewDialog';
 import { SignedUrlDialog } from '../src/components/console/SignedUrlDialog';
@@ -55,6 +64,8 @@ async function testConsoleComponents() {
   assert(tableHtml.includes('2 MB'), 'Tabela deve formatar tamanho 2 MB');
   assert(tableHtml.includes('Público'), 'Badge Público deve estar presente');
   assert(tableHtml.includes('Privado'), 'Badge Privado deve estar presente');
+  assert(tableHtml.includes('Todos os tipos'), 'Select de tipos deve exibir o label "Todos os tipos" no valor selecionado');
+  assert(tableHtml.includes('Todas as pastas'), 'Select de pastas deve exibir o label "Todas as pastas" no valor selecionado');
   console.log('✅ Renderização da tabela de arquivos validada!');
 
   // 2. Renderizar SnippetGenerator
@@ -65,6 +76,43 @@ async function testConsoleComponents() {
   assert(snippetsHtml.includes('cURL (CLI)'), 'Deve conter aba cURL');
   assert(snippetsHtml.includes('curl -X POST'), 'Deve conter comando curl');
   console.log('✅ Componente SnippetGenerator validado!');
+
+  // 3. Validar Select com items e fallback dinâmico
+  console.log('3. Validando resolução de labels nos componentes Select...');
+  const durationOptions = [
+    { value: '900', label: '15 minutos' },
+    { value: '3600', label: '1 hora (recomendado)' },
+  ];
+  const selectHtmlWithItems = renderToStaticMarkup(
+    React.createElement(
+      Select,
+      { value: '3600', items: durationOptions },
+      React.createElement(SelectTrigger, null, React.createElement(SelectValue, null))
+    )
+  );
+  assert(
+    selectHtmlWithItems.includes('1 hora (recomendado)'),
+    'Select com items deve exibir o label correspondente ("1 hora (recomendado)") em vez do raw value'
+  );
+
+  const selectHtmlWithChildrenFallback = renderToStaticMarkup(
+    React.createElement(
+      Select,
+      { value: 'all' },
+      React.createElement(SelectTrigger, null, React.createElement(SelectValue, null)),
+      React.createElement(
+        SelectContent,
+        null,
+        React.createElement(SelectItem, { value: 'all' }, 'Todos os tipos'),
+        React.createElement(SelectItem, { value: 'images' }, 'Imagens')
+      )
+    )
+  );
+  assert(
+    selectHtmlWithChildrenFallback.includes('Todos os tipos'),
+    'Select com fallback dinâmico deve inferir e exibir "Todos os tipos" em vez de "all"'
+  );
+  console.log('✅ Resolução de labels do Select validada com sucesso (tanto via items prop quanto fallback)!');
 
   console.log('\n🎉 TODOS OS TESTES DOS COMPONENTES DO CONSOLE PASSARAM COM SUCESSO!\n');
 }

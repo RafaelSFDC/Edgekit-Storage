@@ -3,6 +3,7 @@ import type { AppContext } from '../env';
 import { apiKeyAuth } from '../middleware/auth';
 import { apiError, apiSuccess } from '../utils/response';
 import { resolveFileUrl, verifySignedToken, buildSignedUrl } from '../utils/keys';
+import { resolveMimeType } from '../utils/mime';
 import { dispatchWebhookEvent } from '../services/webhook-dispatcher';
 
 export const filesRouter = new Hono<AppContext>();
@@ -29,10 +30,16 @@ filesRouter.get('/f/:key{.*}', async (c) => {
     return apiError(c, 'Access denied: File is private', 403);
   }
 
-  const object = await c.env.BUCKET.get(key, {
-    onlyIf: c.req.raw.headers,
-    range: c.req.raw.headers,
-  });
+  let object: R2Object | R2ObjectBody | null;
+  try {
+    object = await c.env.BUCKET.get(key, {
+      onlyIf: c.req.raw.headers,
+      range: c.req.raw.headers,
+    });
+  } catch {
+    // If conditional headers fail to parse (e.g. unquoted etag in dev), fetch directly
+    object = await c.env.BUCKET.get(key);
+  }
 
   if (!object) {
     return apiError(c, 'File not found', 404);
@@ -52,6 +59,12 @@ filesRouter.get('/f/:key{.*}', async (c) => {
   object.writeHttpMetadata(headers);
   headers.set('etag', object.httpEtag);
   headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+
+  // Fallback content-type if missing or generic
+  const resolvedMime = resolveMimeType(key, object.httpMetadata?.contentType);
+  if (!headers.get('content-type') || headers.get('content-type') === 'application/octet-stream') {
+    headers.set('content-type', resolvedMime);
+  }
 
   // Support forced download via ?download=true or custom name ?filename=custom.pdf
   const isDownload = c.req.query('download') === 'true' || c.req.query('download') === '1';
@@ -120,10 +133,16 @@ filesRouter.get(
     // Auto-prepend private/ if not present
     const fullKey = key.startsWith('private/') ? key : `private/${key}`;
 
-    const object = await c.env.BUCKET.get(fullKey, {
-      onlyIf: c.req.raw.headers,
-      range: c.req.raw.headers,
-    });
+    let object: R2Object | R2ObjectBody | null;
+    try {
+      object = await c.env.BUCKET.get(fullKey, {
+        onlyIf: c.req.raw.headers,
+        range: c.req.raw.headers,
+      });
+    } catch {
+      // If conditional headers fail to parse (e.g. unquoted etag in dev), fetch directly
+      object = await c.env.BUCKET.get(fullKey);
+    }
 
     if (!object) {
       return apiError(c, 'Private file not found', 404);
@@ -143,6 +162,12 @@ filesRouter.get(
     headers.set('etag', object.httpEtag);
     headers.set('Cache-Control', 'private, no-cache, no-store');
 
+    // Fallback content-type if missing or generic
+    const resolvedMime = resolveMimeType(fullKey, object.httpMetadata?.contentType);
+    if (!headers.get('content-type') || headers.get('content-type') === 'application/octet-stream') {
+      headers.set('content-type', resolvedMime);
+    }
+
     // Support forced download via ?download=true or custom name ?filename=custom.pdf
     const isDownload = c.req.query('download') === 'true' || c.req.query('download') === '1';
     const customFilename = c.req.query('filename');
@@ -158,7 +183,7 @@ filesRouter.get(
     dispatchWebhookEvent(c, 'file.downloaded', {
       key: fullKey,
       size: object.size,
-      mimeType: object.httpMetadata?.contentType || 'application/octet-stream',
+      mimeType: resolvedMime,
       isPrivate: true,
       url: resolveFileUrl(fullKey, c.req.url, c.env.PUBLIC_URL, true),
       isSignedUrl: Boolean(token && expires),
@@ -187,15 +212,17 @@ filesRouter.get('/api/files', apiKeyAuth(), async (c) => {
       cursor,
       prefix,
       delimiter,
+      include: ['httpMetadata', 'customMetadata'],
     });
 
     const objects = listed.objects.map((obj) => {
       const isPrivate = obj.key.startsWith('private/');
+      const mimeType = resolveMimeType(obj.key, obj.httpMetadata?.contentType);
       return {
         key: obj.key,
         size: obj.size,
         uploadedAt: obj.uploaded.toISOString(),
-        mimeType: obj.httpMetadata?.contentType || 'application/octet-stream',
+        mimeType,
         url: resolveFileUrl(obj.key, c.req.url, c.env.PUBLIC_URL, isPrivate),
         etag: obj.httpEtag,
         isPrivate,
@@ -229,11 +256,12 @@ filesRouter.get('/api/files/:key{.*}/meta', apiKeyAuth(), async (c) => {
   }
 
   const isPrivate = key.startsWith('private/');
+  const mimeType = resolveMimeType(head.key, head.httpMetadata?.contentType);
   return apiSuccess(c, {
     key: head.key,
     size: head.size,
     uploadedAt: head.uploaded.toISOString(),
-    mimeType: head.httpMetadata?.contentType || 'application/octet-stream',
+    mimeType,
     url: resolveFileUrl(head.key, c.req.url, c.env.PUBLIC_URL, isPrivate),
     etag: head.httpEtag,
     customMetadata: head.customMetadata,

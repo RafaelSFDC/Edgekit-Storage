@@ -103,7 +103,7 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
       const parts = file.key.split('/');
       const filename = parts[parts.length - 1];
       const folder = parts.length > 1 ? parts.slice(0, -1).join('/') : null;
-      const isImage = file.mimeType.startsWith('image/');
+      const isImage = file.mimeType.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|svg|avif)$/i.test(file.key);
 
       return (
         <div className="flex items-center gap-3 min-w-0 max-w-[280px] sm:max-w-[340px] py-1">

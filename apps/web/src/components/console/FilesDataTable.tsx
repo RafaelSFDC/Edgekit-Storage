@@ -95,6 +95,25 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
     return Array.from(set).sort();
   }, [data]);
 
+  const typeOptions = useMemo(
+    () => [
+      { value: 'all', label: t.console.filterAll },
+      { value: 'images', label: t.console.filterImages },
+      { value: 'docs', label: t.console.filterDocs },
+      { value: 'public', label: t.console.filterPublic },
+      { value: 'private', label: t.console.filterPrivate },
+    ],
+    [t]
+  );
+
+  const folderOptions = useMemo(
+    () => [
+      { value: 'all', label: 'Todas as pastas' },
+      ...folders.map((f) => ({ value: f, label: f })),
+    ],
+    [folders]
+  );
+
   // Filtragem composta
   const filteredData = useMemo(() => {
     return data.filter((item) => {
@@ -184,30 +203,29 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
         {/* Filtros e Ações */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Filtro de Tipo */}
-          <Select value={typeFilter} onValueChange={(val) => setTypeFilter(val ?? 'all')}>
+          <Select items={typeOptions} value={typeFilter} onValueChange={(val) => setTypeFilter(val ?? 'all')}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t.console.filterAll}</SelectItem>
-              <SelectItem value="images">{t.console.filterImages}</SelectItem>
-              <SelectItem value="docs">{t.console.filterDocs}</SelectItem>
-              <SelectItem value="public">{t.console.filterPublic}</SelectItem>
-              <SelectItem value="private">{t.console.filterPrivate}</SelectItem>
+              {typeOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
           {/* Filtro de Pasta (se existirem) */}
           {folders.length > 0 && (
-            <Select value={folderFilter} onValueChange={(val) => setFolderFilter(val ?? 'all')}>
+            <Select items={folderOptions} value={folderFilter} onValueChange={(val) => setFolderFilter(val ?? 'all')}>
               <SelectTrigger className="w-[130px]">
                 <SelectValue placeholder="Pasta" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas as pastas</SelectItem>
-                {folders.map((f) => (
-                  <SelectItem key={f} value={f}>
-                    {f}
+                {folderOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
                   </SelectItem>
                 ))}
               </SelectContent>

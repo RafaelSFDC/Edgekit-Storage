@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   KeyRound,
   Copy,
@@ -39,6 +39,14 @@ interface SignedUrlDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const DURATION_OPTIONS = [
+  { value: '900', label: '15 minutos' },
+  { value: '3600', label: '1 hora (recomendado)' },
+  { value: '21600', label: '6 horas' },
+  { value: '86400', label: '24 horas (1 dia)' },
+  { value: '604800', label: '7 dias (máximo)' },
+];
 
 export const SignedUrlDialog: React.FC<SignedUrlDialogProps> = ({
   file,
@@ -116,16 +124,16 @@ export const SignedUrlDialog: React.FC<SignedUrlDialogProps> = ({
           {/* Duração */}
           <Field>
             <FieldLabel htmlFor="duration-select">{t.signedModal.durationLabel}</FieldLabel>
-            <Select value={duration} onValueChange={(val) => setDuration(val ?? '3600')}>
+            <Select items={DURATION_OPTIONS} value={duration} onValueChange={(val) => setDuration(val ?? '3600')}>
               <SelectTrigger id="duration-select" className="w-full">
                 <SelectValue placeholder="Selecione o tempo de expiração" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="900">15 minutos</SelectItem>
-                <SelectItem value="3600">1 hora (recomendado)</SelectItem>
-                <SelectItem value="21600">6 horas</SelectItem>
-                <SelectItem value="86400">24 horas (1 dia)</SelectItem>
-                <SelectItem value="604800">7 dias (máximo)</SelectItem>
+                {DURATION_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </Field>

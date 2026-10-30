@@ -45,10 +45,10 @@ export const FilePreviewDialog: React.FC<FilePreviewDialogProps> = ({
 
   if (!file) return null;
 
-  const isImage = file.mimeType.startsWith('image/');
-  const isVideo = file.mimeType.startsWith('video/');
-  const isAudio = file.mimeType.startsWith('audio/');
-  const isPdf = file.mimeType.includes('pdf');
+  const isImage = file.mimeType.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|svg|avif)$/i.test(file.key);
+  const isVideo = file.mimeType.startsWith('video/') || /\.(mp4|webm|ogg|mov)$/i.test(file.key);
+  const isAudio = file.mimeType.startsWith('audio/') || /\.(mp3|wav|ogg|aac|flac)$/i.test(file.key);
+  const isPdf = file.mimeType.includes('pdf') || /\.pdf$/i.test(file.key);
 
   const handleCopyUrl = async () => {
     const success = await copyToClipboard(file.url);

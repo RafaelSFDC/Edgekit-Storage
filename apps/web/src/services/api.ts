@@ -13,8 +13,14 @@ import type {
  * API client functions with credentials/cookie support for EdgeKit Storage
  */
 
+const API_BASE = (
+  typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL
+    ? import.meta.env.VITE_API_URL
+    : ''
+).replace(/\/+$/, '');
+
 export async function fetchAuthMe(): Promise<{ authenticated: boolean }> {
-  const res = await fetch('/api/auth/me', {
+  const res = await fetch(`${API_BASE}/api/auth/me`, {
     credentials: 'include',
   });
   if (!res.ok) {
@@ -25,7 +31,7 @@ export async function fetchAuthMe(): Promise<{ authenticated: boolean }> {
 }
 
 export async function loginAuth(apiKey: string): Promise<{ authenticated: boolean }> {
-  const res = await fetch('/api/auth/login', {
+  const res = await fetch(`${API_BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -39,7 +45,7 @@ export async function loginAuth(apiKey: string): Promise<{ authenticated: boolea
 }
 
 export async function logoutAuth(): Promise<void> {
-  await fetch('/api/auth/logout', {
+  await fetch(`${API_BASE}/api/auth/logout`, {
     method: 'POST',
     credentials: 'include',
   });
@@ -55,7 +61,7 @@ export async function fetchFiles(params?: {
   if (params?.cursor) query.set('cursor', params.cursor);
   if (params?.prefix) query.set('prefix', params.prefix);
 
-  const res = await fetch(`/api/files?${query.toString()}`, {
+  const res = await fetch(`${API_BASE}/api/files?${query.toString()}`, {
     credentials: 'include',
   });
 
@@ -67,7 +73,7 @@ export async function fetchFiles(params?: {
 }
 
 export async function uploadFile(formData: FormData): Promise<StorageObject> {
-  const res = await fetch('/upload', {
+  const res = await fetch(`${API_BASE}/upload`, {
     method: 'POST',
     credentials: 'include',
     body: formData,
@@ -81,7 +87,7 @@ export async function uploadFile(formData: FormData): Promise<StorageObject> {
 }
 
 export async function deleteFile(key: string): Promise<{ key: string }> {
-  const res = await fetch(`/api/files/${encodeURIComponent(key)}`, {
+  const res = await fetch(`${API_BASE}/api/files/${encodeURIComponent(key)}`, {
     method: 'DELETE',
     credentials: 'include',
   });
@@ -94,7 +100,7 @@ export async function deleteFile(key: string): Promise<{ key: string }> {
 }
 
 export async function batchDeleteFiles(keys: string[]): Promise<{ count: number; keys: string[] }> {
-  const res = await fetch('/api/files/batch-delete', {
+  const res = await fetch(`${API_BASE}/api/files/batch-delete`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -112,7 +118,7 @@ export async function generateSignedUrl(
   key: string,
   expiresInSeconds: number = 3600
 ): Promise<SignedUrlResponse['data']> {
-  const res = await fetch('/api/signed-url', {
+  const res = await fetch(`${API_BASE}/api/signed-url`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -127,7 +133,7 @@ export async function generateSignedUrl(
 }
 
 export async function fetchHealth(): Promise<{ status: string; service: string }> {
-  const res = await fetch('/health');
+  const res = await fetch(`${API_BASE}/health`);
   if (!res.ok) {
     throw new Error('Falha no status de saúde do cluster.');
   }
@@ -140,7 +146,7 @@ export async function fetchHealth(): Promise<{ status: string; service: string }
 // ==========================================
 
 export async function fetchWebhooks(): Promise<Webhook[]> {
-  const res = await fetch('/api/webhooks', {
+  const res = await fetch(`${API_BASE}/api/webhooks`, {
     credentials: 'include',
   });
   const json = await res.json();
@@ -151,7 +157,7 @@ export async function fetchWebhooks(): Promise<Webhook[]> {
 }
 
 export async function createWebhook(payload: CreateWebhookPayload): Promise<Webhook> {
-  const res = await fetch('/api/webhooks', {
+  const res = await fetch(`${API_BASE}/api/webhooks`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -165,7 +171,7 @@ export async function createWebhook(payload: CreateWebhookPayload): Promise<Webh
 }
 
 export async function updateWebhook(id: string, payload: UpdateWebhookPayload): Promise<Webhook> {
-  const res = await fetch(`/api/webhooks/${encodeURIComponent(id)}`, {
+  const res = await fetch(`${API_BASE}/api/webhooks/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -179,7 +185,7 @@ export async function updateWebhook(id: string, payload: UpdateWebhookPayload): 
 }
 
 export async function deleteWebhook(id: string): Promise<{ id: string }> {
-  const res = await fetch(`/api/webhooks/${encodeURIComponent(id)}`, {
+  const res = await fetch(`${API_BASE}/api/webhooks/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     credentials: 'include',
   });
@@ -191,7 +197,7 @@ export async function deleteWebhook(id: string): Promise<{ id: string }> {
 }
 
 export async function testWebhook(id: string): Promise<{ message: string; delivery: WebhookDelivery }> {
-  const res = await fetch(`/api/webhooks/${encodeURIComponent(id)}/test`, {
+  const res = await fetch(`${API_BASE}/api/webhooks/${encodeURIComponent(id)}/test`, {
     method: 'POST',
     credentials: 'include',
   });
@@ -206,7 +212,7 @@ export async function fetchWebhookDeliveries(
   webhookId: string,
   limit: number = 50
 ): Promise<WebhookDelivery[]> {
-  const res = await fetch(`/api/webhooks/${encodeURIComponent(webhookId)}/deliveries?limit=${limit}`, {
+  const res = await fetch(`${API_BASE}/api/webhooks/${encodeURIComponent(webhookId)}/deliveries?limit=${limit}`, {
     credentials: 'include',
   });
   const json = await res.json();
@@ -221,7 +227,7 @@ export async function retryWebhookDelivery(
   deliveryId: string
 ): Promise<{ message: string; delivery: WebhookDelivery }> {
   const res = await fetch(
-    `/api/webhooks/${encodeURIComponent(webhookId)}/deliveries/${encodeURIComponent(deliveryId)}/retry`,
+    `${API_BASE}/api/webhooks/${encodeURIComponent(webhookId)}/deliveries/${encodeURIComponent(deliveryId)}/retry`,
     {
       method: 'POST',
       credentials: 'include',
