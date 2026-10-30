@@ -85,7 +85,8 @@ export function resolveFileUrl(
 
   // If the file is private, it must be accessed via Worker private route
   if (isPrivate) {
-    return `${workerBase}/private/${key}`;
+    const cleanKey = key.replace(/^\/+/, '').replace(/^private\//, '');
+    return `${workerBase}/private/${cleanKey}`;
   }
 
   // If a direct public URL is configured (R2 custom domain or r2.dev), use it!

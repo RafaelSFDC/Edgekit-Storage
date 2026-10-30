@@ -21,9 +21,26 @@ app.use(
         .filter(Boolean);
 
       if (allowedOrigins && allowedOrigins.length > 0) {
-        return allowedOrigins.includes(origin) ? origin : '';
+        return allowedOrigins.includes(origin) ? origin : null;
       }
-      return origin;
+
+      // If ALLOWED_ORIGINS is not configured, safely allow only same-origin or localhost
+      try {
+        const originUrl = new URL(origin);
+        const requestUrl = new URL(c.req.url);
+        if (
+          originUrl.host === requestUrl.host ||
+          originUrl.hostname === 'localhost' ||
+          originUrl.hostname === '127.0.0.1' ||
+          originUrl.hostname === '[::1]'
+        ) {
+          return origin;
+        }
+      } catch {
+        return null;
+      }
+
+      return null;
     },
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],

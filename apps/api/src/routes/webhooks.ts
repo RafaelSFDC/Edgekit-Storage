@@ -6,6 +6,7 @@ import { ensureD1Schema } from '../db/schema';
 import {
   generateWebhookSecret,
   deliverWebhook,
+  isSafeWebhookUrl,
   type WebhookRecord,
   type WebhookDeliveryRecord,
 } from '../services/webhook-dispatcher';
@@ -117,6 +118,10 @@ webhooksRouter.post('/', async (c) => {
     return apiError(c, 'Invalid JSON body. Expected { name: string, url: string, ... }', 400);
   }
 
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return apiError(c, 'Invalid JSON body. Expected { name: string, url: string, ... }', 400);
+  }
+
   const { name, url, secret, events, filterPrefix, isActive = true } = body;
 
   if (!name || typeof name !== 'string' || name.trim() === '') {
@@ -130,6 +135,14 @@ webhooksRouter.post('/', async (c) => {
   const trimmedUrl = url.trim();
   if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
     return apiError(c, 'Field "url" must be a valid HTTP or HTTPS address', 400);
+  }
+
+  if (!isSafeWebhookUrl(trimmedUrl)) {
+    return apiError(
+      c,
+      'Field "url" must be a public HTTP or HTTPS address. Local and private network addresses are disallowed.',
+      400
+    );
   }
 
   const validEvents = Array.isArray(events) && events.length > 0
@@ -245,6 +258,10 @@ webhooksRouter.put('/:id', async (c) => {
     return apiError(c, 'Invalid JSON body', 400);
   }
 
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return apiError(c, 'Invalid JSON body', 400);
+  }
+
   const existing = await db
     .prepare('SELECT * FROM webhooks WHERE id = ?')
     .bind(id)
@@ -260,6 +277,13 @@ webhooksRouter.put('/:id', async (c) => {
     url = body.url.trim();
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       return apiError(c, 'Field "url" must be a valid HTTP or HTTPS address', 400);
+    }
+    if (!isSafeWebhookUrl(url)) {
+      return apiError(
+        c,
+        'Field "url" must be a public HTTP or HTTPS address. Local and private network addresses are disallowed.',
+        400
+      );
     }
   }
 

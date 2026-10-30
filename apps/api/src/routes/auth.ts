@@ -19,6 +19,10 @@ authRouter.post('/login', async (c) => {
     return apiError(c, 'Invalid JSON body. Expected { apiKey: string }', 400);
   }
 
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return apiError(c, 'Invalid JSON body. Expected { apiKey: string }', 400);
+  }
+
   const { apiKey } = body;
   if (!apiKey || typeof apiKey !== 'string' || apiKey.trim() === '') {
     return apiError(c, 'Field "apiKey" is required', 400);

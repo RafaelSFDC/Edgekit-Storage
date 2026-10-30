@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   KeyRound,
   Copy,
@@ -61,9 +61,11 @@ export const SignedUrlDialog: React.FC<SignedUrlDialogProps> = ({
   } | null>(null);
 
   const signedMutation = useSignedUrlMutation();
+  const isSubmittingRef = useRef(false);
 
   const handleGenerate = async () => {
-    if (!file) return;
+    if (!file || isSubmittingRef.current || signedMutation.isPending) return;
+    isSubmittingRef.current = true;
 
     try {
       const res = await signedMutation.mutateAsync({
@@ -74,6 +76,8 @@ export const SignedUrlDialog: React.FC<SignedUrlDialogProps> = ({
       toast.success('Link temporário assinado com sucesso!');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao gerar URL assinada.');
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
@@ -167,6 +171,7 @@ export const SignedUrlDialog: React.FC<SignedUrlDialogProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
+                  nativeButton={false}
                   render={
                     <a href={signedResult.url} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="size-4" />

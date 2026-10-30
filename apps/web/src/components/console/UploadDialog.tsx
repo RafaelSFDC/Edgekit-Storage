@@ -74,63 +74,69 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
   };
 
   const isUploading = uploadMutation.isPending || uploadProgress !== null;
+  const isSubmittingRef = useRef(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedFiles.length === 0) return;
+    if (selectedFiles.length === 0 || isSubmittingRef.current || isUploading) return;
+    isSubmittingRef.current = true;
 
-    if (selectedFiles.length === 1) {
-      const file = selectedFiles[0];
-      const formData = new FormData();
-      formData.append('file', file);
-      if (folder.trim()) formData.append('folder', folder.trim());
-      if (customName.trim()) formData.append('customName', customName.trim());
-      if (preserveName) formData.append('preserveName', 'true');
-      if (isPrivate) formData.append('private', 'true');
+    try {
+      if (selectedFiles.length === 1) {
+        const file = selectedFiles[0];
+        const formData = new FormData();
+        formData.append('file', file);
+        if (folder.trim()) formData.append('folder', folder.trim());
+        if (customName.trim()) formData.append('customName', customName.trim());
+        if (preserveName) formData.append('preserveName', 'true');
+        if (isPrivate) formData.append('private', 'true');
 
-      try {
-        await uploadMutation.mutateAsync(formData);
-        resetForm();
-        onOpenChange(false);
-      } catch {
-        // Handled by toast
+        try {
+          await uploadMutation.mutateAsync(formData);
+          resetForm();
+          onOpenChange(false);
+        } catch {
+          // Handled by toast
+        }
+        return;
       }
-      return;
-    }
 
-    // Multiple files batch upload
-    setUploadProgress({ current: 0, total: selectedFiles.length });
-    let successCount = 0;
-    let failCount = 0;
+      // Multiple files batch upload
+      setUploadProgress({ current: 0, total: selectedFiles.length });
+      let successCount = 0;
+      let failCount = 0;
 
-    for (let i = 0; i < selectedFiles.length; i++) {
-      const file = selectedFiles[i];
-      setUploadProgress({ current: i + 1, total: selectedFiles.length });
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        setUploadProgress({ current: i + 1, total: selectedFiles.length });
 
-      const formData = new FormData();
-      formData.append('file', file);
-      if (folder.trim()) formData.append('folder', folder.trim());
-      if (preserveName) formData.append('preserveName', 'true');
-      if (isPrivate) formData.append('private', 'true');
+        const formData = new FormData();
+        formData.append('file', file);
+        if (folder.trim()) formData.append('folder', folder.trim());
+        if (preserveName) formData.append('preserveName', 'true');
+        if (isPrivate) formData.append('private', 'true');
 
-      try {
-        await uploadMutation.mutateAsync(formData);
-        successCount++;
-      } catch {
-        failCount++;
+        try {
+          await uploadMutation.mutateAsync(formData);
+          successCount++;
+        } catch {
+          failCount++;
+        }
       }
-    }
 
-    setUploadProgress(null);
-    if (successCount > 0) {
-      toast.success(`${successCount} arquivo(s) enviados com sucesso!`);
-    }
-    if (failCount > 0) {
-      toast.error(`Falha no envio de ${failCount} arquivo(s).`);
-    }
+      setUploadProgress(null);
+      if (successCount > 0) {
+        toast.success(`${successCount} arquivo(s) enviados com sucesso!`);
+      }
+      if (failCount > 0) {
+        toast.error(`Falha no envio de ${failCount} arquivo(s).`);
+      }
 
-    resetForm();
-    onOpenChange(false);
+      resetForm();
+      onOpenChange(false);
+    } finally {
+      isSubmittingRef.current = false;
+    }
   };
 
   const totalBytes = selectedFiles.reduce((acc, f) => acc + f.size, 0);

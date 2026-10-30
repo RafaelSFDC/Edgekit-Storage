@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
+    "test:vitest": "vitest run",
     "test": "npx tsx test/verify-auth-routing.ts && npx tsx test/verify-query.ts && npx tsx test/verify-page-header.ts && npx tsx test/verify-console.ts"
   },
   "dependencies": {
@@ -32,13 +33,18 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
     "@tanstack/react-query-devtools": "^5.105.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
     "@types/node": "^26.6.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
+    "jsdom": "^30.1.3",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.23.15",
     "typescript": "^5.7.3",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^5.0.5"
   }
 }

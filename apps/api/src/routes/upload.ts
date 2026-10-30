@@ -214,6 +214,10 @@ uploadRouter.post('/presigned', apiKeyAuth(), async (c) => {
     return apiError(c, 'Invalid JSON body. Expected { filename: string, ... }', 400);
   }
 
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return apiError(c, 'Invalid JSON body. Expected { filename: string, ... }', 400);
+  }
+
   const {
     filename,
     mimeType: reqMimeType,
@@ -355,9 +359,17 @@ uploadRouter.put('/presigned/:key{.*}', async (c) => {
     );
   }
 
-  const body = c.req.raw.body;
-  if (!body) {
+  const rawBytes = await c.req.raw.arrayBuffer();
+  if (!rawBytes || rawBytes.byteLength === 0) {
     return apiError(c, 'Request body is empty (0 bytes received)', 400);
+  }
+
+  if (rawBytes.byteLength > maxBytes) {
+    return apiError(
+      c,
+      `File size (${(rawBytes.byteLength / (1024 * 1024)).toFixed(2)} MB) exceeds maximum allowed limit of ${maxMb} MB`,
+      413
+    );
   }
 
   const contentType = c.req.header('content-type') || 'application/octet-stream';
@@ -372,8 +384,10 @@ uploadRouter.put('/presigned/:key{.*}', async (c) => {
     );
   }
 
+  const uint8Payload = new Uint8Array(rawBytes);
+
   try {
-    await c.env.BUCKET.put(key, body, {
+    await c.env.BUCKET.put(key, uint8Payload, {
       httpMetadata: {
         contentType: resolvedMime,
       },
@@ -386,7 +400,7 @@ uploadRouter.put('/presigned/:key{.*}', async (c) => {
 
     const isPrivate = key.startsWith('private/');
     const fileUrl = resolveFileUrl(key, c.req.url, c.env.PUBLIC_URL, isPrivate);
-    const size = contentLengthHeader ? Number(contentLengthHeader) : 0;
+    const size = rawBytes.byteLength;
 
     // Trigger file.uploaded webhook asynchronously via waitUntil
     dispatchWebhookEvent(c, 'file.uploaded', {

@@ -302,6 +302,10 @@ filesRouter.post('/api/files/batch-delete', apiKeyAuth(), async (c) => {
     return apiError(c, 'Invalid JSON body. Expected { keys: string[] }', 400);
   }
 
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return apiError(c, 'Invalid JSON body. Expected { keys: string[] }', 400);
+  }
+
   const { keys } = body;
   if (!Array.isArray(keys) || keys.length === 0) {
     return apiError(c, 'Field "keys" must be a non-empty array of file keys', 400);
@@ -336,6 +340,10 @@ filesRouter.post('/api/signed-url', apiKeyAuth(), async (c) => {
   try {
     body = await c.req.json();
   } catch {
+    return apiError(c, 'Invalid JSON body. Expected { key: string, expiresInSeconds?: number }', 400);
+  }
+
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return apiError(c, 'Invalid JSON body. Expected { key: string, expiresInSeconds?: number }', 400);
   }
 
