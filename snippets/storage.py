@@ -7,6 +7,9 @@ Requer apenas a biblioteca `requests` (pip install requests).
 """
 
 from typing import Optional, List, Dict, Any, Union, BinaryIO
+import hmac
+import hashlib
+import time
 import requests
 
 
@@ -180,3 +183,58 @@ class EdgeKitStorage:
             raise EdgeKitStorageError(err_msg)
 
         return res_json.get("data", {})
+
+
+def verify_webhook_signature(
+    payload: str,
+    signature_header: str,
+    secret: str,
+    tolerance_seconds: int = 300,
+) -> bool:
+    """
+    Verifica a assinatura criptográfica HMAC-SHA256 de um webhook recebido do EdgeKit Storage.
+    Protege seu backend contra falsificação de requisições e ataques de repetição (replay attacks).
+
+    :param payload: Corpo cru (raw body string) recebido no webhook
+    :param signature_header: Valor do cabeçalho HTTP 'X-Edgekit-Signature' (ex: "t=1730000000,v1=abcdef...")
+    :param secret: Chave secreta do webhook configurada no painel (começa com 'whsec_...')
+    :param tolerance_seconds: Tolerância máxima em segundos contra distorção de relógio (padrão: 300 / 5 min)
+    :return: True se a assinatura for válida e recente; False caso contrário
+    """
+    if not signature_header or not secret:
+        return False
+
+    parts = signature_header.split(",")
+    timestamp_str: Optional[str] = None
+    received_signature: Optional[str] = None
+
+    for part in parts:
+        if "=" in part:
+            k, v = part.split("=", 1)
+            k, v = k.strip(), v.strip()
+            if k == "t":
+                timestamp_str = v
+            elif k == "v1":
+                received_signature = v
+
+    if not timestamp_str or not received_signature:
+        return False
+
+    try:
+        timestamp = int(timestamp_str)
+    except ValueError:
+        return False
+
+    if tolerance_seconds > 0:
+        now = int(time.time())
+        if abs(now - timestamp) > tolerance_seconds:
+            return False
+
+    signed_payload = f"{timestamp}.{payload}".encode("utf-8")
+    expected_signature = hmac.new(
+        secret.encode("utf-8"),
+        signed_payload,
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(received_signature, expected_signature)

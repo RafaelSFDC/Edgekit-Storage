@@ -19,7 +19,7 @@ async function testAuthRouting() {
 
   // 2. Validar que as rotas da Dashboard estão aninhadas no layout protegido
   console.log('2. Validando rotas protegidas da Dashboard...');
-  const dashboardRoutes = ['/', '/console', '/snippets'];
+  const dashboardRoutes = ['/', '/console', '/snippets', '/webhooks'];
   for (const path of dashboardRoutes) {
     const route = routes[path];
     assert.ok(route, `A rota ${path} deve estar registrada`);
@@ -29,19 +29,23 @@ async function testAuthRouting() {
       `A rota ${path} deve ser filha de /_dashboard`
     );
   }
-  console.log('✅ Todas as rotas da dashboard (/ , /console, /snippets) pertencem a _dashboard!');
+  console.log('✅ Todas as rotas da dashboard (/ , /console, /snippets, /webhooks) pertencem a _dashboard!');
 
-  // 3. Validar chaves de tradução i18n para Login
+  // 3. Validar chaves de tradução i18n para Login e Webhooks
   console.log('3. Validando traduções i18n (pt-BR e en)...');
   assert.ok(ptBR.login.title, 'pt-BR deve conter login.title');
   assert.ok(ptBR.login.passkeyLabel, 'pt-BR deve conter login.passkeyLabel');
   assert.ok(ptBR.login.submitButton, 'pt-BR deve conter login.submitButton');
   assert.ok(ptBR.login.secureNote, 'pt-BR deve conter login.secureNote');
+  assert.ok(ptBR.webhooks.title, 'pt-BR deve conter webhooks.title');
+  assert.ok(ptBR.webhooks.addWebhook, 'pt-BR deve conter webhooks.addWebhook');
 
   assert.ok(en.login.title, 'en deve conter login.title');
   assert.ok(en.login.passkeyLabel, 'en deve conter login.passkeyLabel');
   assert.ok(en.login.submitButton, 'en deve conter login.submitButton');
   assert.ok(en.login.secureNote, 'en deve conter login.secureNote');
+  assert.ok(en.webhooks.title, 'en deve conter webhooks.title');
+  assert.ok(en.webhooks.addWebhook, 'en deve conter webhooks.addWebhook');
   console.log('✅ Dicionários de internacionalização i18n validados com sucesso!');
 
   console.log('\n🎉 TODOS OS TESTES DE ROTEAMENTO E LOGIN PASSARAM COM SUCESSO!\n');

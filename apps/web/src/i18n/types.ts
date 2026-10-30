@@ -26,12 +26,14 @@ export interface Translations {
     overview: string;
     console: string;
     snippets: string;
+    webhooks: string;
     settings: string;
   };
   sidebar: {
     home: string;
     console: string;
     snippets: string;
+    webhooks: string;
     quickSearch: string;
     settings: string;
   };
@@ -127,5 +129,45 @@ export interface Translations {
   snippets: {
     title: string;
     subtitle: string;
+  };
+  webhooks: {
+    title: string;
+    subtitle: string;
+    addWebhook: string;
+    editWebhook: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    urlLabel: string;
+    urlPlaceholder: string;
+    secretLabel: string;
+    generateSecret: string;
+    eventsLabel: string;
+    allEvents: string;
+    eventUploaded: string;
+    eventDownloaded: string;
+    eventDeleted: string;
+    prefixLabel: string;
+    prefixPlaceholder: string;
+    prefixHelp: string;
+    activeLabel: string;
+    testPing: string;
+    testPingSuccess: string;
+    testPingFailed: string;
+    viewDeliveries: string;
+    retryDelivery: string;
+    deliveriesTitle: string;
+    deliveriesSubtitle: string;
+    noWebhooksFound: string;
+    noDeliveriesFound: string;
+    deleteConfirm: string;
+    statusCode: string;
+    duration: string;
+    time: string;
+    payloadPreview: string;
+    responsePreview: string;
+    quickStatsWebhooks: string;
+    quickStatsDeliveries: string;
+    quickStatsSuccessRate: string;
+    integrationGuide: string;
   };
 }

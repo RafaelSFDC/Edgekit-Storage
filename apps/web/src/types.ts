@@ -61,3 +61,56 @@ export interface StorageStats {
   publicFiles: number;
   foldersCount: number;
 }
+
+export interface WebhookStats {
+  totalDeliveries: number;
+  successfulDeliveries: number;
+  failedDeliveries: number;
+  lastDeliveryAt: string | null;
+}
+
+export interface Webhook {
+  id: string;
+  name: string;
+  url: string;
+  secret: string;
+  events: string[];
+  filterPrefix: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  stats?: WebhookStats;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  webhookId: string;
+  eventId: string;
+  eventType: string;
+  payload: string;
+  statusCode: number | null;
+  responseBody: string | null;
+  durationMs: number;
+  success: boolean;
+  errorMessage: string | null;
+  attempt: number;
+  createdAt: string;
+}
+
+export interface CreateWebhookPayload {
+  name: string;
+  url: string;
+  secret?: string;
+  events?: string[];
+  filterPrefix?: string | null;
+  isActive?: boolean;
+}
+
+export interface UpdateWebhookPayload {
+  name?: string;
+  url?: string;
+  secret?: string;
+  events?: string[];
+  filterPrefix?: string | null;
+  isActive?: boolean;
+}

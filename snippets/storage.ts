@@ -385,3 +385,85 @@ export function getCloudflareResizedUrl(
     return imageUrl;
   }
 }
+
+export interface WebhookEvent<T = Record<string, any>> {
+  id: string;
+  event: 'file.uploaded' | 'file.downloaded' | 'file.deleted' | 'ping' | string;
+  timestamp: string;
+  data: T;
+}
+
+/**
+ * Verifies an incoming EdgeKit Storage webhook signature.
+ * Prevents tampering and replay attacks.
+ *
+ * @param payload Raw string body of the incoming webhook request
+ * @param signatureHeader Value of the 'X-Edgekit-Signature' HTTP header
+ * @param secret Your webhook secret (starts with 'whsec_...')
+ * @param toleranceSeconds Maximum allowed clock skew in seconds (default: 300 / 5 minutes)
+ */
+export async function verifyWebhookSignature({
+  payload,
+  signatureHeader,
+  secret,
+  toleranceSeconds = 300,
+}: {
+  payload: string;
+  signatureHeader: string;
+  secret: string;
+  toleranceSeconds?: number;
+}): Promise<boolean> {
+  if (!signatureHeader || !secret) return false;
+
+  const parts = signatureHeader.split(',');
+  let timestampStr: string | undefined;
+  let receivedSignature: string | undefined;
+
+  for (const part of parts) {
+    const [k, v] = part.split('=');
+    if (k?.trim() === 't') timestampStr = v?.trim();
+    if (k?.trim() === 'v1') receivedSignature = v?.trim();
+  }
+
+  if (!timestampStr || !receivedSignature) return false;
+
+  const timestamp = Number(timestampStr);
+  if (isNaN(timestamp)) return false;
+
+  if (toleranceSeconds > 0) {
+    const now = Math.floor(Date.now() / 1000);
+    if (Math.abs(now - timestamp) > toleranceSeconds) {
+      return false; // Request expired or replay attack
+    }
+  }
+
+  const encoder = new TextEncoder();
+  const signaturePayload = `${timestamp}.${payload}`;
+  const keyData = encoder.encode(secret);
+
+  const cryptoKey = await globalThis.crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signatureBuffer = await globalThis.crypto.subtle.sign(
+    'HMAC',
+    cryptoKey,
+    encoder.encode(signaturePayload)
+  );
+
+  const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  if (receivedSignature.length !== expectedSignature.length) return false;
+
+  let mismatch = 0;
+  for (let i = 0; i < receivedSignature.length; i++) {
+    mismatch |= receivedSignature.charCodeAt(i) ^ expectedSignature.charCodeAt(i);
+  }
+  return mismatch === 0;
+}

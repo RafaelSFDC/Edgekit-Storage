@@ -5,6 +5,7 @@ import { healthRouter } from './routes/health';
 import { authRouter } from './routes/auth';
 import { uploadRouter } from './routes/upload';
 import { filesRouter } from './routes/files';
+import { webhooksRouter } from './routes/webhooks';
 import { apiError } from './utils/response';
 
 const app = new Hono<AppContext>();
@@ -33,6 +34,7 @@ app.use(
 
 // Mount route modules
 app.route('/api/auth', authRouter);
+app.route('/api/webhooks', webhooksRouter);
 app.route('/', healthRouter);
 app.route('/upload', uploadRouter);
 app.route('/api/upload', uploadRouter);

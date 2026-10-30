@@ -3,6 +3,7 @@ import {
   Home,
   HardDrive,
   Code2,
+  Webhook,
   Search,
 } from 'lucide-react';
 import { Link, useRouterState } from '@tanstack/react-router';
@@ -58,6 +59,12 @@ export const AppSidebar: React.FC = () => {
       to: '/snippets',
       label: t.sidebar.snippets,
       icon: <Code2 className="size-4 shrink-0" />,
+      badge: undefined,
+    },
+    {
+      to: '/webhooks',
+      label: t.sidebar.webhooks,
+      icon: <Webhook className="size-4 shrink-0" />,
       badge: undefined,
     },
   ];

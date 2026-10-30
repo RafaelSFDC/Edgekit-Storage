@@ -9,6 +9,7 @@ import {
   buildPresignedUploadUrl,
   verifySignedUploadToken,
 } from '../utils/keys';
+import { dispatchWebhookEvent } from '../services/webhook-dispatcher';
 
 export const uploadRouter = new Hono<AppContext>();
 
@@ -152,6 +153,19 @@ uploadRouter.post('/', apiKeyAuth(), async (c) => {
         mimeType: variantMime,
       };
     }
+
+    // Trigger file.uploaded webhook asynchronously via waitUntil
+    dispatchWebhookEvent(c, 'file.uploaded', {
+      key,
+      url: fileUrl,
+      size: file.size,
+      mimeType,
+      originalName: file.name,
+      isPrivate,
+      uploadedAt: new Date().toISOString(),
+      uploadedVia: 'direct',
+      variants: Object.keys(variantsData).length > 0 ? variantsData : undefined,
+    });
 
     return apiSuccess(
       c,
@@ -373,6 +387,18 @@ uploadRouter.put('/presigned/:key{.*}', async (c) => {
     const isPrivate = key.startsWith('private/');
     const fileUrl = resolveFileUrl(key, c.req.url, c.env.PUBLIC_URL, isPrivate);
     const size = contentLengthHeader ? Number(contentLengthHeader) : 0;
+
+    // Trigger file.uploaded webhook asynchronously via waitUntil
+    dispatchWebhookEvent(c, 'file.uploaded', {
+      key,
+      url: fileUrl,
+      size,
+      mimeType: resolvedMime,
+      originalName: key.split('/').pop() || key,
+      isPrivate,
+      uploadedAt: new Date().toISOString(),
+      uploadedVia: 'presigned-handshake',
+    });
 
     return apiSuccess(
       c,

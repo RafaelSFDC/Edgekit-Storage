@@ -9,7 +9,13 @@ import {
   timingSafeEqualStr,
 } from '../src/utils/keys';
 import { isMimeAllowed, resolveMimeType } from '../src/utils/mime';
-import { getCloudflareResizedUrl } from '../../../snippets/storage';
+import { getCloudflareResizedUrl, verifyWebhookSignature as verifySnippetSignature } from '../../../snippets/storage';
+import {
+  generateWebhookSecret,
+  generateWebhookSignature,
+  verifyWebhookSignature,
+  doesWebhookMatch,
+} from '../src/services/webhook-dispatcher';
 import app from '../src/index';
 
 async function runTests() {
@@ -124,6 +130,72 @@ async function runTests() {
   assert.strictEqual(apiInfoJson.success, true);
   assert.strictEqual(apiInfoJson.data.service, 'cloudflare-storage');
   console.log('✅ Rotas HTTP do Worker responderam com sucesso!');
+
+  // 6. Testes do Sistema de Webhooks e Assinaturas HMAC-SHA256
+  console.log('6. Testando Sistema de Webhooks, HMAC e Filtros...');
+  const whSecret = generateWebhookSecret();
+  assert.ok(whSecret.startsWith('whsec_'));
+
+  const payloadStr = JSON.stringify({
+    id: 'evt_12345',
+    event: 'file.downloaded',
+    timestamp: new Date().toISOString(),
+    data: { key: 'private/orders/123/ebook.pdf', size: 1024 },
+  });
+  const nowTs = Math.floor(Date.now() / 1000);
+
+  const { signatureHeader, signatureHex } = await generateWebhookSignature(payloadStr, whSecret, nowTs);
+  assert.ok(signatureHeader.includes('t='));
+  assert.ok(signatureHeader.includes('v1='));
+  assert.strictEqual(signatureHex.length, 64);
+
+  // 6.1 Verificação válida
+  const isSigValid = await verifyWebhookSignature({
+    payload: payloadStr,
+    signatureHeader,
+    secret: whSecret,
+    toleranceSeconds: 300,
+  });
+  assert.strictEqual(isSigValid, true, 'Assinatura idêntica deve ser válida');
+
+  // 6.2 Verificação via Snippet SDK do cliente
+  const isSnippetValid = await verifySnippetSignature({
+    payload: payloadStr,
+    signatureHeader,
+    secret: whSecret,
+    toleranceSeconds: 300,
+  });
+  assert.strictEqual(isSnippetValid, true, 'Snippet de integração do cliente deve validar com perfeição');
+
+  // 6.3 Rejeição de payload adulterado (tampered)
+  const isTamperedPayload = await verifyWebhookSignature({
+    payload: payloadStr + 'tamper',
+    signatureHeader,
+    secret: whSecret,
+    toleranceSeconds: 300,
+  });
+  assert.strictEqual(isTamperedPayload, false, 'Payload adulterado deve ser rejeitado');
+
+  // 6.4 Rejeição de ataque de repetição / expirado
+  const oldHeader = `t=${nowTs - 600},v1=${signatureHex}`;
+  const isExpiredSig = await verifyWebhookSignature({
+    payload: payloadStr,
+    signatureHeader: oldHeader,
+    secret: whSecret,
+    toleranceSeconds: 300,
+  });
+  assert.strictEqual(isExpiredSig, false, 'Assinatura com timestamp antigo deve ser rejeitada');
+
+  // 6.5 Filtros de Evento e Prefixo de Pasta
+  const wildcardWebhook = { events: '["*"]', filter_prefix: null };
+  assert.strictEqual(doesWebhookMatch(wildcardWebhook, 'file.downloaded', 'private/doc.pdf'), true);
+  assert.strictEqual(doesWebhookMatch(wildcardWebhook, 'file.uploaded', 'uploads/avatar.png'), true);
+
+  const prefixWebhook = { events: '["file.downloaded"]', filter_prefix: 'private/orders/' };
+  assert.strictEqual(doesWebhookMatch(prefixWebhook, 'file.downloaded', 'private/orders/999/download.zip'), true);
+  assert.strictEqual(doesWebhookMatch(prefixWebhook, 'file.downloaded', 'public/banner.jpg'), false);
+  assert.strictEqual(doesWebhookMatch(prefixWebhook, 'file.uploaded', 'private/orders/999/download.zip'), false);
+  console.log('✅ Sistema de Webhooks, Assinaturas HMAC e Filtros validados com 100% de sucesso!');
 
   console.log('\n🎉 TODOS OS TESTES DO BACKEND PASSARAM COM SUCESSO!\n');
 }

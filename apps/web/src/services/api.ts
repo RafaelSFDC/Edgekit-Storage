@@ -1,4 +1,13 @@
-import type { ListResponse, StorageObject, UploadResponse, SignedUrlResponse } from '../types';
+import type {
+  ListResponse,
+  StorageObject,
+  UploadResponse,
+  SignedUrlResponse,
+  Webhook,
+  WebhookDelivery,
+  CreateWebhookPayload,
+  UpdateWebhookPayload,
+} from '../types';
 
 /**
  * API client functions with credentials/cookie support for EdgeKit Storage
@@ -123,5 +132,104 @@ export async function fetchHealth(): Promise<{ status: string; service: string }
     throw new Error('Falha no status de saúde do cluster.');
   }
   const json = await res.json();
+  return json.data;
+}
+
+// ==========================================
+// Webhook API Methods
+// ==========================================
+
+export async function fetchWebhooks(): Promise<Webhook[]> {
+  const res = await fetch('/api/webhooks', {
+    credentials: 'include',
+  });
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message || 'Falha ao buscar webhooks.');
+  }
+  return json.data.webhooks;
+}
+
+export async function createWebhook(payload: CreateWebhookPayload): Promise<Webhook> {
+  const res = await fetch('/api/webhooks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message || 'Falha ao criar webhook.');
+  }
+  return json.data;
+}
+
+export async function updateWebhook(id: string, payload: UpdateWebhookPayload): Promise<Webhook> {
+  const res = await fetch(`/api/webhooks/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message || 'Falha ao atualizar webhook.');
+  }
+  return json.data;
+}
+
+export async function deleteWebhook(id: string): Promise<{ id: string }> {
+  const res = await fetch(`/api/webhooks/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message || 'Falha ao remover webhook.');
+  }
+  return json.data;
+}
+
+export async function testWebhook(id: string): Promise<{ message: string; delivery: WebhookDelivery }> {
+  const res = await fetch(`/api/webhooks/${encodeURIComponent(id)}/test`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message || 'Falha ao disparar ping de teste.');
+  }
+  return json.data;
+}
+
+export async function fetchWebhookDeliveries(
+  webhookId: string,
+  limit: number = 50
+): Promise<WebhookDelivery[]> {
+  const res = await fetch(`/api/webhooks/${encodeURIComponent(webhookId)}/deliveries?limit=${limit}`, {
+    credentials: 'include',
+  });
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message || 'Falha ao carregar entregas do webhook.');
+  }
+  return json.data.deliveries;
+}
+
+export async function retryWebhookDelivery(
+  webhookId: string,
+  deliveryId: string
+): Promise<{ message: string; delivery: WebhookDelivery }> {
+  const res = await fetch(
+    `/api/webhooks/${encodeURIComponent(webhookId)}/deliveries/${encodeURIComponent(deliveryId)}/retry`,
+    {
+      method: 'POST',
+      credentials: 'include',
+    }
+  );
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message || 'Falha ao reenviar entrega.');
+  }
   return json.data;
 }

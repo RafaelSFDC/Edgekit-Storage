@@ -3,6 +3,7 @@ import type { AppContext } from '../env';
 import { apiKeyAuth } from '../middleware/auth';
 import { apiError, apiSuccess } from '../utils/response';
 import { resolveFileUrl, verifySignedToken, buildSignedUrl } from '../utils/keys';
+import { dispatchWebhookEvent } from '../services/webhook-dispatcher';
 
 export const filesRouter = new Hono<AppContext>();
 
@@ -61,6 +62,17 @@ filesRouter.get('/f/:key{.*}', async (c) => {
     const safeName = rawName.replace(/["\r\n]/g, '_');
     headers.set('Content-Disposition', `attachment; filename="${encodeURIComponent(safeName)}"; filename*=UTF-8''${encodeURIComponent(safeName)}`);
   }
+
+  // Trigger file.downloaded webhook asynchronously via waitUntil
+  dispatchWebhookEvent(c, 'file.downloaded', {
+    key,
+    size: object.size,
+    mimeType: object.httpMetadata?.contentType || 'application/octet-stream',
+    isPrivate: false,
+    url: resolveFileUrl(key, c.req.url, c.env.PUBLIC_URL, false),
+    isSignedUrl: false,
+    customMetadata: object.customMetadata,
+  });
 
   return new Response(object.body, {
     headers,
@@ -139,6 +151,20 @@ filesRouter.get(
       const safeName = rawName.replace(/["\r\n]/g, '_');
       headers.set('Content-Disposition', `attachment; filename="${encodeURIComponent(safeName)}"; filename*=UTF-8''${encodeURIComponent(safeName)}`);
     }
+
+    // Trigger file.downloaded webhook asynchronously via waitUntil
+    const token = c.req.query('token');
+    const expires = c.req.query('expires');
+    dispatchWebhookEvent(c, 'file.downloaded', {
+      key: fullKey,
+      size: object.size,
+      mimeType: object.httpMetadata?.contentType || 'application/octet-stream',
+      isPrivate: true,
+      url: resolveFileUrl(fullKey, c.req.url, c.env.PUBLIC_URL, true),
+      isSignedUrl: Boolean(token && expires),
+      expiresAt: expires ? Number(expires) : undefined,
+      customMetadata: object.customMetadata,
+    });
 
     return new Response(object.body, {
       headers,
@@ -226,6 +252,7 @@ filesRouter.delete('/api/files/:key{.*}', apiKeyAuth(), async (c) => {
 
   try {
     await c.env.BUCKET.delete(key);
+    dispatchWebhookEvent(c, 'file.deleted', { key });
     return apiSuccess(c, {
       message: 'File deleted successfully',
       key,
@@ -259,6 +286,9 @@ filesRouter.post('/api/files/batch-delete', apiKeyAuth(), async (c) => {
 
   try {
     await c.env.BUCKET.delete(validKeys);
+    for (const k of validKeys) {
+      dispatchWebhookEvent(c, 'file.deleted', { key: k });
+    }
     return apiSuccess(c, {
       message: 'Files deleted successfully',
       count: validKeys.length,

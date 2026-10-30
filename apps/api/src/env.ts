@@ -5,6 +5,11 @@ export interface Bindings {
   BUCKET: R2Bucket;
 
   /**
+   * Cloudflare D1 Database binding for Webhooks and event metadata
+   */
+  DB?: D1Database;
+
+  /**
    * Secret API Key required for upload, delete, and list operations
    */
   API_KEY: string;

@@ -1,0 +1,345 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Webhook as WebhookIcon,
+  RefreshCw,
+  Copy,
+  Check,
+  Globe,
+  Tag,
+  Key,
+  FolderTree,
+  Loader2,
+} from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { useI18n } from '../../i18n/context';
+import { copyToClipboard } from '../../lib/utils';
+import type { Webhook, CreateWebhookPayload, UpdateWebhookPayload } from '../../types';
+import { toast } from 'sonner';
+
+interface WebhookFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  webhookToEdit?: Webhook | null;
+  onSubmit: (payload: CreateWebhookPayload | UpdateWebhookPayload) => Promise<void>;
+  isLoading?: boolean;
+}
+
+function generateLocalSecret(): string {
+  const bytes = new Uint8Array(20);
+  crypto.getRandomValues(bytes);
+  return 'whsec_' + Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+const AVAILABLE_EVENTS = [
+  { id: 'file.uploaded', labelKey: 'eventUploaded' as const },
+  { id: 'file.downloaded', labelKey: 'eventDownloaded' as const },
+  { id: 'file.deleted', labelKey: 'eventDeleted' as const },
+];
+
+export const WebhookFormDialog: React.FC<WebhookFormDialogProps> = ({
+  open,
+  onOpenChange,
+  webhookToEdit,
+  onSubmit,
+  isLoading = false,
+}) => {
+  const { t } = useI18n();
+
+  const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
+  const [secret, setSecret] = useState('');
+  const [selectedEvents, setSelectedEvents] = useState<string[]>(['*']);
+  const [filterPrefix, setFilterPrefix] = useState('');
+  const [isActive, setIsActive] = useState(true);
+  const [copiedSecret, setCopiedSecret] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      if (webhookToEdit) {
+        setName(webhookToEdit.name);
+        setUrl(webhookToEdit.url);
+        setSecret(webhookToEdit.secret);
+        setSelectedEvents(webhookToEdit.events || ['*']);
+        setFilterPrefix(webhookToEdit.filterPrefix || '');
+        setIsActive(webhookToEdit.isActive);
+      } else {
+        setName('');
+        setUrl('');
+        setSecret(generateLocalSecret());
+        setSelectedEvents(['*']);
+        setFilterPrefix('');
+        setIsActive(true);
+      }
+      setCopiedSecret(false);
+    }
+  }, [open, webhookToEdit]);
+
+  const handleCopySecret = async () => {
+    if (!secret) return;
+    const ok = await copyToClipboard(secret);
+    if (ok) {
+      setCopiedSecret(true);
+      toast.success(t.common.copied);
+      setTimeout(() => setCopiedSecret(false), 2000);
+    }
+  };
+
+  const handleRegenerateSecret = () => {
+    setSecret(generateLocalSecret());
+    setCopiedSecret(false);
+  };
+
+  const handleToggleAllEvents = () => {
+    if (selectedEvents.includes('*')) {
+      setSelectedEvents(['file.downloaded']);
+    } else {
+      setSelectedEvents(['*']);
+    }
+  };
+
+  const handleToggleEvent = (eventId: string) => {
+    if (selectedEvents.includes('*')) {
+      // Transitioning from all to specific
+      const remaining = AVAILABLE_EVENTS.map((e) => e.id).filter((id) => id !== eventId);
+      setSelectedEvents(remaining);
+      return;
+    }
+
+    if (selectedEvents.includes(eventId)) {
+      const next = selectedEvents.filter((e) => e !== eventId);
+      setSelectedEvents(next.length === 0 ? ['file.downloaded'] : next);
+    } else {
+      const next = [...selectedEvents, eventId];
+      if (next.length === AVAILABLE_EVENTS.length) {
+        setSelectedEvents(['*']);
+      } else {
+        setSelectedEvents(next);
+      }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const cleanUrl = url.trim();
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      toast.error(t.webhooks.urlLabel + ': HTTP / HTTPS required');
+      return;
+    }
+
+    if (!name.trim()) {
+      toast.error(t.webhooks.nameLabel + ' is required');
+      return;
+    }
+
+    try {
+      await onSubmit({
+        name: name.trim(),
+        url: cleanUrl,
+        secret: secret.trim(),
+        events: selectedEvents,
+        filterPrefix: filterPrefix.trim() || null,
+        isActive,
+      });
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const isEditing = Boolean(webhookToEdit);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg sm:max-w-xl">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
+              <WebhookIcon className="size-4" />
+            </div>
+            <div>
+              <DialogTitle>
+                {isEditing ? t.webhooks.editWebhook : t.webhooks.addWebhook}
+              </DialogTitle>
+              <DialogDescription>
+                {t.webhooks.subtitle}
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          {/* Friendly Name */}
+          <div className="space-y-1.5">
+            <Label htmlFor="webhook-name" className="text-xs font-medium flex items-center gap-1.5">
+              <Tag className="size-3.5 text-muted-foreground" />
+              {t.webhooks.nameLabel}
+            </Label>
+            <Input
+              id="webhook-name"
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t.webhooks.namePlaceholder}
+              className="h-9 text-xs"
+            />
+          </div>
+
+          {/* Endpoint URL */}
+          <div className="space-y-1.5">
+            <Label htmlFor="webhook-url" className="text-xs font-medium flex items-center gap-1.5">
+              <Globe className="size-3.5 text-muted-foreground" />
+              {t.webhooks.urlLabel}
+            </Label>
+            <Input
+              id="webhook-url"
+              type="url"
+              required
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder={t.webhooks.urlPlaceholder}
+              className="h-9 text-xs font-mono"
+            />
+          </div>
+
+          {/* Secret Signing Key */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="webhook-secret" className="text-xs font-medium flex items-center gap-1.5">
+                <Key className="size-3.5 text-muted-foreground" />
+                {t.webhooks.secretLabel}
+              </Label>
+              <button
+                type="button"
+                onClick={handleRegenerateSecret}
+                className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <RefreshCw className="size-3" />
+                {t.webhooks.generateSecret}
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                id="webhook-secret"
+                type="text"
+                required
+                value={secret}
+                onChange={(e) => setSecret(e.target.value)}
+                className="h-9 text-xs font-mono bg-muted/30"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 px-3 shrink-0"
+                onClick={handleCopySecret}
+              >
+                {copiedSecret ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
+              </Button>
+            </div>
+          </div>
+
+          {/* Subscribed Events */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium">
+              {t.webhooks.eventsLabel}
+            </Label>
+            <div className="rounded-lg border border-border/70 p-3 bg-muted/20 space-y-2">
+              {/* Wildcard * */}
+              <label className="flex items-center justify-between cursor-pointer py-1 text-xs font-medium text-foreground">
+                <span>{t.webhooks.allEvents}</span>
+                <input
+                  type="checkbox"
+                  checked={selectedEvents.includes('*')}
+                  onChange={handleToggleAllEvents}
+                  className="rounded border-border size-4 text-primary focus:ring-primary"
+                />
+              </label>
+
+              <div className="border-t border-border/40 my-1 pt-1 space-y-1.5">
+                {AVAILABLE_EVENTS.map((event) => {
+                  const isChecked = selectedEvents.includes('*') || selectedEvents.includes(event.id);
+                  return (
+                    <label
+                      key={event.id}
+                      className="flex items-center justify-between cursor-pointer py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <span className="font-mono text-[11px]">{t.webhooks[event.labelKey]}</span>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        disabled={selectedEvents.includes('*')}
+                        onChange={() => handleToggleEvent(event.id)}
+                        className="rounded border-border size-3.5 text-primary focus:ring-primary disabled:opacity-50"
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Folder Prefix Filter */}
+          <div className="space-y-1.5">
+            <Label htmlFor="webhook-prefix" className="text-xs font-medium flex items-center gap-1.5">
+              <FolderTree className="size-3.5 text-muted-foreground" />
+              {t.webhooks.prefixLabel}
+            </Label>
+            <Input
+              id="webhook-prefix"
+              type="text"
+              value={filterPrefix}
+              onChange={(e) => setFilterPrefix(e.target.value)}
+              placeholder={t.webhooks.prefixPlaceholder}
+              className="h-9 text-xs font-mono"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              {t.webhooks.prefixHelp}
+            </p>
+          </div>
+
+          {/* Active Switch */}
+          <div className="flex items-center justify-between rounded-lg border border-border/70 p-3 bg-muted/20">
+            <div className="space-y-0.5">
+              <Label className="text-xs font-medium text-foreground cursor-pointer">
+                {t.webhooks.activeLabel}
+              </Label>
+              <p className="text-[11px] text-muted-foreground">
+                {isActive ? t.common.active : 'Pausado'}
+              </p>
+            </div>
+            <Switch checked={isActive} onCheckedChange={setIsActive} />
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+            >
+              {t.common.cancel}
+            </Button>
+            <Button type="submit" size="sm" disabled={isLoading} className="gap-2">
+              {isLoading && <Loader2 className="size-3.5 animate-spin" />}
+              {t.common.save}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};

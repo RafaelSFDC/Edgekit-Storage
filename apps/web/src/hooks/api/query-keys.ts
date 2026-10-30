@@ -16,4 +16,9 @@ export const queryKeys = {
     all: ['health'] as const,
     check: () => [...queryKeys.health.all, 'check'] as const,
   },
+  webhooks: {
+    all: ['webhooks'] as const,
+    list: () => [...queryKeys.webhooks.all, 'list'] as const,
+    deliveries: (webhookId: string) => [...queryKeys.webhooks.all, 'deliveries', webhookId] as const,
+  },
 };

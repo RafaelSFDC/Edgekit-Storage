@@ -407,6 +407,47 @@ const avatarThumb = getCloudflareResizedUrl(file.url, {
 
 ---
 
+### 12. Webhooks & Eventos em Tempo Real (com Cloudflare D1)
+O EdgeKit Storage conta com um motor completo de Webhooks alimentado pelo **Cloudflare D1**. Sempre que arquivos forem acessados, baixados, enviados ou excluídos, seu backend pode receber notificações HTTP assinadas instantaneamente.
+
+#### Eventos Suportados:
+- `file.downloaded`: Disparado quando arquivos públicos (`/f/:key`) ou links assinados temporários (`/private/:key?token=...`) são acessados ou baixados. Inclui chave do arquivo, metadados customizados, IP do cliente, User-Agent e referer.
+- `file.uploaded`: Disparado após uploads diretos ou uploads via handshake pré-assinado.
+- `file.deleted`: Disparado quando arquivos individuais ou em lote são excluídos.
+- `ping`: Ping de teste de conectividade.
+
+#### Validação de Assinatura HMAC-SHA256:
+As requisições enviadas incluem o cabeçalho `X-Edgekit-Signature` no formato `t=timestamp,v1=assinaturaHex` contra falsificações e ataques de repetição (*replay attacks*).
+
+Validação simples usando o snippet SDK zero-dependência:
+```typescript
+import { verifyWebhookSignature } from './snippets/storage';
+
+export async function POST(req: Request) {
+  const payload = await req.text();
+  const signature = req.headers.get('x-edgekit-signature') || '';
+  const secret = process.env.EDGEKIT_WEBHOOK_SECRET!; // whsec_...
+
+  const isValid = await verifyWebhookSignature({
+    payload,
+    signatureHeader: signature,
+    secret,
+  });
+
+  if (!isValid) return new Response('Unauthorized', { status: 401 });
+
+  const event = JSON.parse(payload);
+  if (event.event === 'file.downloaded') {
+    // Ex: Registrar no ERP/banco que o cliente baixou seu infoproduto
+    console.log('Arquivo baixado:', event.data.key, 'pelo IP:', event.data.request?.ip);
+  }
+
+  return new Response(JSON.stringify({ received: true }), { status: 200 });
+}
+```
+
+---
+
 ## 📦 Snippets Prontos por Linguagem (Copy-Paste)
 
 Em vez de forçar a instalação de pacotes externos pesados, você pode copiar os snippets nativos prontos diretamente para o seu projeto:

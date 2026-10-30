@@ -11,6 +11,7 @@ import { LoginPage } from './pages/LoginPage';
 import { OverviewPage } from './pages/OverviewPage';
 import { ConsolePage } from './pages/ConsolePage';
 import { SnippetsPage } from './pages/SnippetsPage';
+import { WebhooksPage } from './pages/WebhooksPage';
 import { useAuth } from './context/auth-context';
 import { EdgekitLogo } from './components/common/EdgekitLogo';
 
@@ -78,6 +79,12 @@ const snippetsRoute = createRoute({
   component: SnippetsPage,
 });
 
+const webhooksRoute = createRoute({
+  getParentRoute: () => dashboardRoute,
+  path: '/webhooks',
+  component: WebhooksPage,
+});
+
 // 5. Montagem da Árvore de Rotas
 const routeTree = rootRoute.addChildren([
   loginRoute,
@@ -85,6 +92,7 @@ const routeTree = rootRoute.addChildren([
     indexRoute,
     consoleRoute,
     snippetsRoute,
+    webhooksRoute,
   ]),
 ]);
 

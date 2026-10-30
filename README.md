@@ -411,6 +411,47 @@ const avatarThumb = getCloudflareResizedUrl(file.url, {
 
 ---
 
+### 12. Webhooks & Real-time Events (with Cloudflare D1)
+EdgeKit Storage features an enterprise-grade Webhook dispatch engine backed by **Cloudflare D1**. Whenever users upload, access, download, or delete files, your backend can receive instant signed HTTP notifications.
+
+#### Supported Events:
+- `file.downloaded`: Dispatched when public (`/f/:key`) or private files via temporary signed URLs (`/private/:key?token=...`) are accessed or downloaded. Provides file details, custom metadata, client IP, User-Agent, and referer.
+- `file.uploaded`: Dispatched after direct or presigned handshake uploads finish.
+- `file.deleted`: Dispatched when individual or batch files are removed.
+- `ping`: Connectivity test ping.
+
+#### HMAC-SHA256 Signature Verification:
+Outgoing requests include the `X-Edgekit-Signature` header formatted as `t=timestamp,v1=signatureHex` to protect against forgery and replay attacks.
+
+Verify easily using the zero-dependency SDK snippet:
+```typescript
+import { verifyWebhookSignature } from './snippets/storage';
+
+export async function POST(req: Request) {
+  const payload = await req.text();
+  const signature = req.headers.get('x-edgekit-signature') || '';
+  const secret = process.env.EDGEKIT_WEBHOOK_SECRET!; // whsec_...
+
+  const isValid = await verifyWebhookSignature({
+    payload,
+    signatureHeader: signature,
+    secret,
+  });
+
+  if (!isValid) return new Response('Unauthorized', { status: 401 });
+
+  const event = JSON.parse(payload);
+  if (event.event === 'file.downloaded') {
+    // E.g., Record that the customer downloaded their digital purchase
+    console.log('File downloaded:', event.data.key, 'by IP:', event.data.request?.ip);
+  }
+
+  return new Response(JSON.stringify({ received: true }), { status: 200 });
+}
+```
+
+---
+
 ## 📦 Ready-to-Use Snippets by Language (Copy-Paste)
 
 Instead of requiring heavy third-party packages, copy native snippets directly into your projects:
