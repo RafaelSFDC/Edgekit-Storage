@@ -1,5 +1,13 @@
 import assert from 'node:assert';
-import { generateStorageKey, generateSignedToken, verifySignedToken, timingSafeEqualStr } from '../src/utils/keys';
+import {
+  generateStorageKey,
+  generateSignedToken,
+  verifySignedToken,
+  generateSignedUploadToken,
+  verifySignedUploadToken,
+  buildPresignedUploadUrl,
+  timingSafeEqualStr,
+} from '../src/utils/keys';
 import { isMimeAllowed, resolveMimeType } from '../src/utils/mime';
 import app from '../src/index';
 
@@ -58,6 +66,34 @@ async function runTests() {
   const isTampered = await verifySignedToken('private/other-file.pdf', secretKey, validToken, expiresFuture);
   assert.strictEqual(isTampered, false, 'Token para chave diferente deve ser rejeitado');
   console.log('✅ Assinatura e tokens temporários validados com segurança!');
+
+  // 3.1. Teste de Tokens de Upload Pré-assinado (Presigned Upload Handshake)
+  console.log('3.1. Testando tokens de upload pré-assinado (generateSignedUploadToken)...');
+  const uploadKey = '2026/10/photo.jpg';
+  const uploadToken = await generateSignedUploadToken(uploadKey, secretKey, expiresFuture);
+  assert.strictEqual(typeof uploadToken, 'string');
+  assert.strictEqual(uploadToken.length, 64);
+
+  const isUploadValid = await verifySignedUploadToken(uploadKey, secretKey, uploadToken, expiresFuture);
+  assert.strictEqual(isUploadValid, true, 'Token de upload futuro deve ser válido');
+
+  const isUploadExpired = await verifySignedUploadToken(uploadKey, secretKey, uploadToken, expiresPast);
+  assert.strictEqual(isUploadExpired, false, 'Token de upload expirado deve ser rejeitado');
+
+  // Isolamento criptográfico: token de download NÃO deve ser válido como token de upload
+  const isDownloadTokenAsUpload = await verifySignedUploadToken(uploadKey, secretKey, validToken, expiresFuture);
+  assert.strictEqual(isDownloadTokenAsUpload, false, 'Token de download não pode ser usado para upload!');
+
+  const presignedResult = await buildPresignedUploadUrl({
+    key: uploadKey,
+    secret: secretKey,
+    requestUrl: 'https://storage.myapp.com/api/upload/presigned',
+    expiresInSeconds: 600,
+  });
+  assert.ok(presignedResult.uploadUrl.includes('/upload/presigned/2026/10/photo.jpg'));
+  assert.ok(presignedResult.uploadUrl.includes('token='));
+  assert.ok(presignedResult.uploadUrl.includes('expires='));
+  console.log('✅ Tokens e URLs de upload pré-assinado (Handshake) validados com sucesso!');
 
   // 4. Teste de timingSafeEqualStr
   console.log('4. Testando comparação de tempo constante (timingSafeEqualStr)...');

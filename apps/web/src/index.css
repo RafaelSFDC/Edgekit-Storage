@@ -61,7 +61,7 @@
   --card-foreground: #09090b;
   --popover: #ffffff;
   --popover-foreground: #09090b;
-  --primary: #0284c7;
+  --primary: #059669;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
@@ -73,23 +73,30 @@
   --destructive-foreground: #ffffff;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #0284c7;
+  --ring: #059669;
   --radius: 0.625rem;
 
-  --chart-1: #0284c7;
-  --chart-2: #0ea5e9;
-  --chart-3: #38bdf8;
-  --chart-4: #7dd3fc;
-  --chart-5: #bae6fd;
+  --chart-1: #059669;
+  --chart-2: #10b981;
+  --chart-3: #34d399;
+  --chart-4: #6ee7b7;
+  --chart-5: #a7f3d0;
 
   --sidebar: #ffffff;
   --sidebar-foreground: #09090b;
-  --sidebar-primary: #0284c7;
+  --sidebar-primary: #059669;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #f1f5f9;
   --sidebar-accent-foreground: #0f172a;
   --sidebar-border: #e2e8f0;
-  --sidebar-ring: #0284c7;
+  --sidebar-ring: #059669;
+
+  /* Edgekit Ecosystem Module Colors */
+  --edgekit-platform: #F38020;
+  --edgekit-auth: #6366F1;
+  --edgekit-storage: #10B981;
+  --edgekit-queue: #EC4899;
+  --edgekit-events: #0EA5E9;
 }
 
 .dark {
@@ -99,8 +106,8 @@
   --card-foreground: #fafafa;
   --popover: #0e0e11;
   --popover-foreground: #fafafa;
-  --primary: #38bdf8;
-  --primary-foreground: #09090b;
+  --primary: #10b981;
+  --primary-foreground: #022c22;
   --secondary: #18181b;
   --secondary-foreground: #fafafa;
   --muted: #1e1e24;
@@ -111,23 +118,30 @@
   --destructive-foreground: #fafafa;
   --border: #27272a;
   --input: #27272a;
-  --ring: #38bdf8;
+  --ring: #10b981;
   --radius: 0.625rem;
 
-  --chart-1: #38bdf8;
-  --chart-2: #0ea5e9;
-  --chart-3: #0284c7;
-  --chart-4: #0369a1;
-  --chart-5: #075985;
+  --chart-1: #34d399;
+  --chart-2: #10b981;
+  --chart-3: #059669;
+  --chart-4: #047857;
+  --chart-5: #065f46;
 
   --sidebar: #0e0e11;
   --sidebar-foreground: #fafafa;
-  --sidebar-primary: #38bdf8;
-  --sidebar-primary-foreground: #09090b;
+  --sidebar-primary: #10b981;
+  --sidebar-primary-foreground: #022c22;
   --sidebar-accent: #27272a;
   --sidebar-accent-foreground: #fafafa;
   --sidebar-border: #27272a;
-  --sidebar-ring: #38bdf8;
+  --sidebar-ring: #10b981;
+
+  /* Edgekit Ecosystem Module Colors */
+  --edgekit-platform: #F38020;
+  --edgekit-auth: #6366F1;
+  --edgekit-storage: #10B981;
+  --edgekit-queue: #EC4899;
+  --edgekit-events: #0EA5E9;
 }
 
 @layer base {

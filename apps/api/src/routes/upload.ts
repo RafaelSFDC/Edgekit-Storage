@@ -3,14 +3,20 @@ import type { AppContext } from '../env';
 import { apiKeyAuth } from '../middleware/auth';
 import { apiError, apiSuccess } from '../utils/response';
 import { isMimeAllowed, resolveMimeType } from '../utils/mime';
-import { generateStorageKey, resolveFileUrl } from '../utils/keys';
+import {
+  generateStorageKey,
+  resolveFileUrl,
+  buildPresignedUploadUrl,
+  verifySignedUploadToken,
+} from '../utils/keys';
 
 export const uploadRouter = new Hono<AppContext>();
 
-// Require API key for uploads
-uploadRouter.use('*', apiKeyAuth());
-
-uploadRouter.post('/', async (c) => {
+/**
+ * 1. DIRECT UPLOAD: POST / (Requires API Key or Session Cookie)
+ * Used by backend-to-backend calls or the admin dashboard.
+ */
+uploadRouter.post('/', apiKeyAuth(), async (c) => {
   let formData: FormData;
   try {
     formData = await c.req.formData();
@@ -88,6 +94,7 @@ uploadRouter.post('/', async (c) => {
       customMetadata: {
         originalName: file.name,
         uploadedAt: new Date().toISOString(),
+        uploadedVia: 'direct',
       },
     });
 
@@ -108,6 +115,187 @@ uploadRouter.post('/', async (c) => {
     );
   } catch (err) {
     console.error(`[Upload Error] Failed storing key ${key}:`, err);
+    return apiError(
+      c,
+      'Failed storing file in R2 storage',
+      500,
+      err instanceof Error ? err.message : String(err)
+    );
+  }
+});
+
+/**
+ * 2. GENERATE PRESIGNED UPLOAD URL (HANDSHAKE): POST /presigned (Requires API Key)
+ * Called by external backends to create a temporary signed upload URL for the frontend.
+ */
+uploadRouter.post('/presigned', apiKeyAuth(), async (c) => {
+  let body: {
+    filename?: string;
+    mimeType?: string;
+    folder?: string;
+    preserveName?: boolean;
+    customName?: string;
+    isPrivate?: boolean;
+    expiresInSeconds?: number;
+  };
+
+  try {
+    body = await c.req.json();
+  } catch {
+    return apiError(c, 'Invalid JSON body. Expected { filename: string, ... }', 400);
+  }
+
+  const {
+    filename,
+    mimeType: reqMimeType,
+    folder,
+    preserveName = true,
+    customName,
+    isPrivate = false,
+    expiresInSeconds = 600,
+  } = body;
+
+  if (!filename || typeof filename !== 'string' || filename.trim() === '') {
+    return apiError(c, 'Field "filename" is required', 400);
+  }
+
+  // Resolve and validate MIME type if specified
+  const mimeType = resolveMimeType(filename, reqMimeType);
+  const allowedConfig = c.env.ALLOWED_MIME_TYPES || 'image/*,application/pdf';
+
+  if (!isMimeAllowed(mimeType, allowedConfig)) {
+    return apiError(
+      c,
+      `File MIME type '${mimeType}' is not allowed. Allowed formats: ${allowedConfig}`,
+      415
+    );
+  }
+
+  const duration = Math.max(10, Math.min(Number(expiresInSeconds) || 600, 86400)); // 10s to 24h
+  const maxMb = Number(c.env.MAX_FILE_SIZE_MB || '25');
+  const maxBytes = maxMb * 1024 * 1024;
+
+  const key = generateStorageKey({
+    filename: filename.trim(),
+    folder: folder?.trim(),
+    customName: customName?.trim(),
+    preserveName: Boolean(preserveName),
+    isPrivate: Boolean(isPrivate),
+  });
+
+  const { uploadUrl, expiresAt } = await buildPresignedUploadUrl({
+    key,
+    secret: c.env.API_KEY,
+    requestUrl: c.req.url,
+    expiresInSeconds: duration,
+  });
+
+  const publicOrPrivateUrl = resolveFileUrl(key, c.req.url, c.env.PUBLIC_URL, isPrivate);
+
+  return apiSuccess(
+    c,
+    {
+      uploadUrl,
+      method: 'PUT',
+      key,
+      url: publicOrPrivateUrl,
+      expiresAt,
+      expiresInSeconds: duration,
+      mimeType,
+      maxSizeBytes: maxBytes,
+      isPrivate: Boolean(isPrivate),
+    },
+    201
+  );
+});
+
+/**
+ * 3. EXECUTE PRESIGNED UPLOAD: PUT /presigned/:key+ (Public endpoint validated via HMAC token)
+ * Called directly by frontend/client browsers without exposing the master API Key.
+ */
+uploadRouter.put('/presigned/:key{.*}', async (c) => {
+  const key = c.req.param('key');
+  if (!key) {
+    return apiError(c, 'Storage key is required in URL path', 400);
+  }
+
+  const token = c.req.query('token');
+  const expires = c.req.query('expires');
+
+  if (!token || !expires) {
+    return apiError(c, 'Missing presigned token or expiration in query parameters', 403);
+  }
+
+  const expiresNum = Number(expires);
+  if (isNaN(expiresNum)) {
+    return apiError(c, 'Invalid expiration parameter', 400);
+  }
+
+  const isValid = await verifySignedUploadToken(key, c.env.API_KEY, token, expiresNum);
+  if (!isValid) {
+    return apiError(c, 'Forbidden: Presigned upload token is invalid or expired', 403);
+  }
+
+  // Check payload size if Content-Length is provided
+  const contentLengthHeader = c.req.header('content-length');
+  const maxMb = Number(c.env.MAX_FILE_SIZE_MB || '25');
+  const maxBytes = maxMb * 1024 * 1024;
+
+  if (contentLengthHeader && Number(contentLengthHeader) > maxBytes) {
+    return apiError(
+      c,
+      `File size (${(Number(contentLengthHeader) / (1024 * 1024)).toFixed(2)} MB) exceeds maximum allowed limit of ${maxMb} MB`,
+      413
+    );
+  }
+
+  const body = c.req.raw.body;
+  if (!body) {
+    return apiError(c, 'Request body is empty (0 bytes received)', 400);
+  }
+
+  const contentType = c.req.header('content-type') || 'application/octet-stream';
+  const resolvedMime = resolveMimeType(key, contentType);
+
+  const allowedConfig = c.env.ALLOWED_MIME_TYPES || 'image/*,application/pdf';
+  if (!isMimeAllowed(resolvedMime, allowedConfig)) {
+    return apiError(
+      c,
+      `File MIME type '${resolvedMime}' is not allowed. Allowed formats: ${allowedConfig}`,
+      415
+    );
+  }
+
+  try {
+    await c.env.BUCKET.put(key, body, {
+      httpMetadata: {
+        contentType: resolvedMime,
+      },
+      customMetadata: {
+        originalName: key.split('/').pop() || key,
+        uploadedAt: new Date().toISOString(),
+        uploadedVia: 'presigned-handshake',
+      },
+    });
+
+    const isPrivate = key.startsWith('private/');
+    const fileUrl = resolveFileUrl(key, c.req.url, c.env.PUBLIC_URL, isPrivate);
+    const size = contentLengthHeader ? Number(contentLengthHeader) : 0;
+
+    return apiSuccess(
+      c,
+      {
+        key,
+        url: fileUrl,
+        size,
+        mimeType: resolvedMime,
+        isPrivate,
+        uploadedAt: new Date().toISOString(),
+      },
+      201
+    );
+  } catch (err) {
+    console.error(`[Presigned Upload Error] Failed storing key ${key}:`, err);
     return apiError(
       c,
       'Failed storing file in R2 storage',

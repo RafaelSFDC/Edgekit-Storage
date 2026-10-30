@@ -176,3 +176,70 @@ export async function buildSignedUrl(
 
   return { url, expiresAt, token };
 }
+
+/**
+ * Generates an HMAC-SHA256 signature token specifically for presigned uploads.
+ * Uses an 'upload:' domain prefix to prevent download tokens from being reused as upload tokens.
+ */
+export async function generateSignedUploadToken(
+  key: string,
+  secret: string,
+  expiresAt: number
+): Promise<string> {
+  const enc = new TextEncoder();
+  const keyData = enc.encode(secret);
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const cleanKey = key.replace(/^\/+/, '');
+  const data = enc.encode(`upload:${cleanKey}:${expiresAt}`);
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, data);
+
+  return Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * Verifies an HMAC-SHA256 signature token for presigned uploads.
+ */
+export async function verifySignedUploadToken(
+  key: string,
+  secret: string,
+  token: string,
+  expiresAt: number
+): Promise<boolean> {
+  const now = Math.floor(Date.now() / 1000);
+  if (now > expiresAt) {
+    return false;
+  }
+
+  const expectedToken = await generateSignedUploadToken(key, secret, expiresAt);
+  return timingSafeEqualStr(token, expectedToken);
+}
+
+/**
+ * Builds a presigned upload URL for direct client-to-storage uploads.
+ */
+export async function buildPresignedUploadUrl(options: {
+  key: string;
+  secret: string;
+  requestUrl: string;
+  expiresInSeconds?: number;
+}): Promise<{ uploadUrl: string; expiresAt: number; token: string }> {
+  const { key, secret, requestUrl, expiresInSeconds = 600 } = options;
+  const expiresAt = Math.floor(Date.now() / 1000) + expiresInSeconds;
+  const cleanKey = key.replace(/^\/+/, '');
+  const token = await generateSignedUploadToken(cleanKey, secret, expiresAt);
+
+  const parsedRequest = new URL(requestUrl);
+  const workerBase = `${parsedRequest.protocol}//${parsedRequest.host}`;
+  const uploadUrl = `${workerBase}/upload/presigned/${cleanKey}?token=${token}&expires=${expiresAt}`;
+
+  return { uploadUrl, expiresAt, token };
+}

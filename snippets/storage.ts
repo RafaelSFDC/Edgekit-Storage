@@ -29,6 +29,35 @@ export interface UploadOptions {
   private?: boolean;
 }
 
+export interface PresignedUploadOptions {
+  /** Original filename including extension (e.g. "photo.jpg") */
+  filename: string;
+  /** MIME type of the file (e.g. "image/jpeg", "application/pdf") */
+  mimeType?: string;
+  /** Target subfolder */
+  folder?: string;
+  /** If true, preserves original filename in key */
+  preserveName?: boolean;
+  /** Exact custom key */
+  customName?: string;
+  /** Mark as private */
+  private?: boolean;
+  /** URL validity in seconds (default: 600, 10 minutes) */
+  expiresInSeconds?: number;
+}
+
+export interface PresignedUploadResult {
+  uploadUrl: string;
+  method: 'PUT';
+  key: string;
+  url: string;
+  expiresAt: number;
+  expiresInSeconds: number;
+  mimeType: string;
+  maxSizeBytes: number;
+  isPrivate: boolean;
+}
+
 export interface StorageFile {
   key: string;
   url: string;
@@ -190,6 +219,44 @@ export function createStorageClient(config: StorageConfig) {
     },
 
     /**
+     * Handshake: Generates a temporary HMAC-SHA256 presigned upload URL.
+     * Call this from your backend (e.g. Next.js Server Action or Express API) and return
+     * the uploadUrl to your client/browser to allow direct uploads to R2.
+     */
+    async createPresignedUpload(
+      options: PresignedUploadOptions
+    ): Promise<PresignedUploadResult> {
+      const res = await fetch(`${baseUrl}/api/upload/presigned`, {
+        method: 'POST',
+        headers: {
+          ...authHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: options.filename,
+          mimeType: options.mimeType,
+          folder: options.folder,
+          preserveName: options.preserveName,
+          customName: options.customName,
+          isPrivate: options.private,
+          expiresInSeconds: options.expiresInSeconds || 600,
+        }),
+      });
+
+      const json = (await res.json()) as {
+        success: boolean;
+        data: PresignedUploadResult;
+        error?: { message: string };
+      };
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.error?.message || `Failed to create presigned upload (Status ${res.status})`);
+      }
+
+      return json.data;
+    },
+
+    /**
      * Retrieves metadata for a specific file without downloading its body
      */
     async getMeta(key: string): Promise<StorageFile> {
@@ -208,4 +275,47 @@ export function createStorageClient(config: StorageConfig) {
       return json.data;
     },
   };
+}
+
+/**
+ * Client-side helper for uploading directly from the browser using a presigned upload URL.
+ * Bypasses serverless payload limits (e.g. Vercel 4.5MB), consumes zero backend bandwidth,
+ * and requires no secret API Key on the frontend.
+ */
+export async function uploadToPresignedUrl(
+  uploadUrl: string,
+  file: File | Blob,
+  mimeType?: string
+): Promise<StorageFile> {
+  const res = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': mimeType || file.type || 'application/octet-stream',
+    },
+    body: file,
+  });
+
+  const json = (await res.json()) as {
+    success: boolean;
+    data: StorageFile;
+    error?: { message: string };
+  };
+
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message || `Direct upload failed (Status ${res.status})`);
+  }
+
+  return json.data;
+}
+
+/**
+ * Formats any file URL to force browser download (Content-Disposition: attachment).
+ */
+export function getDownloadUrl(url: string, filename?: string): string {
+  const parsed = new URL(url);
+  parsed.searchParams.set('download', 'true');
+  if (filename) {
+    parsed.searchParams.set('filename', filename);
+  }
+  return parsed.toString();
 }

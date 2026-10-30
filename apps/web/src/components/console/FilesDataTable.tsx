@@ -53,6 +53,11 @@ interface FilesDataTableProps {
   onGenerateSignedUrl: (file: StorageObject) => void;
   onDelete: (key: string) => void;
   onBatchDelete: (keys: string[]) => void;
+  hasNextPage?: boolean;
+  hasPrevPage?: boolean;
+  onNextPage?: () => void;
+  onPrevPage?: () => void;
+  pageIndex?: number;
 }
 
 export const FilesDataTable: React.FC<FilesDataTableProps> = ({
@@ -64,6 +69,11 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
   onGenerateSignedUrl,
   onDelete,
   onBatchDelete,
+  hasNextPage,
+  hasPrevPage,
+  onNextPage,
+  onPrevPage,
+  pageIndex = 0,
 }) => {
   const { t } = useI18n();
   const [sorting, setSorting] = useState<SortingState>([{ id: 'uploadedAt', desc: true }]);
@@ -301,35 +311,71 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
         </Table>
       </div>
 
-      {/* 4. Paginação */}
-      {table.getPageCount() > 1 && (
-        <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-          <div>
-            Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()} (
-            {filteredData.length} arquivos)
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="h-8 text-xs px-3"
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="h-8 text-xs px-3"
-            >
-              Próximo
-            </Button>
-          </div>
+      {/* 4. Paginação (Local e Remota via Cursor R2) */}
+      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground gap-3 px-1">
+        <div>
+          {hasNextPage !== undefined || hasPrevPage !== undefined ? (
+            <span>
+              Lote R2 (Página {pageIndex + 1}) • {data.length} arquivo(s) neste lote
+            </span>
+          ) : (
+            <span>
+              {filteredData.length} arquivo(s)
+            </span>
+          )}
         </div>
-      )}
+
+        <div className="flex items-center gap-2">
+          {table.getPageCount() > 1 && (
+            <div className="flex items-center gap-1.5 mr-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                className="h-7 text-xs px-2"
+              >
+                Anterior
+              </Button>
+              <span className="text-[11px]">
+                {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                className="h-7 text-xs px-2"
+              >
+                Próximo
+              </Button>
+            </div>
+          )}
+
+          {(hasNextPage !== undefined || hasPrevPage !== undefined) && (
+            <div className="flex items-center gap-1.5 border-l border-border/80 pl-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onPrevPage}
+                disabled={!hasPrevPage || isLoading}
+                className="h-8 text-xs px-2.5 gap-1"
+              >
+                ← Anterior (R2)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onNextPage}
+                disabled={!hasNextPage || isLoading}
+                className="h-8 text-xs px-2.5 gap-1"
+              >
+                Próximo (R2) →
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

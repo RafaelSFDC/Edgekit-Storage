@@ -52,6 +52,16 @@ filesRouter.get('/f/:key{.*}', async (c) => {
   headers.set('etag', object.httpEtag);
   headers.set('Cache-Control', 'public, max-age=31536000, immutable');
 
+  // Support forced download via ?download=true or custom name ?filename=custom.pdf
+  const isDownload = c.req.query('download') === 'true' || c.req.query('download') === '1';
+  const customFilename = c.req.query('filename');
+  if (isDownload || customFilename) {
+    const rawName = customFilename || object.customMetadata?.originalName || key.split('/').pop() || 'download';
+    // Clean filename of quotes and unsafe characters
+    const safeName = rawName.replace(/["\r\n]/g, '_');
+    headers.set('Content-Disposition', `attachment; filename="${encodeURIComponent(safeName)}"; filename*=UTF-8''${encodeURIComponent(safeName)}`);
+  }
+
   return new Response(object.body, {
     headers,
   });
@@ -120,6 +130,15 @@ filesRouter.get(
     object.writeHttpMetadata(headers);
     headers.set('etag', object.httpEtag);
     headers.set('Cache-Control', 'private, no-cache, no-store');
+
+    // Support forced download via ?download=true or custom name ?filename=custom.pdf
+    const isDownload = c.req.query('download') === 'true' || c.req.query('download') === '1';
+    const customFilename = c.req.query('filename');
+    if (isDownload || customFilename) {
+      const rawName = customFilename || object.customMetadata?.originalName || key.split('/').pop() || 'download';
+      const safeName = rawName.replace(/["\r\n]/g, '_');
+      headers.set('Content-Disposition', `attachment; filename="${encodeURIComponent(safeName)}"; filename*=UTF-8''${encodeURIComponent(safeName)}`);
+    }
 
     return new Response(object.body, {
       headers,

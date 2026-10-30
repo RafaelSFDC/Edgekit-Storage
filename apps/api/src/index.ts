@@ -25,8 +25,8 @@ app.use(
       return origin;
     },
     credentials: true,
-    allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS', 'HEAD'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'Content-Length'],
     maxAge: 86400,
   })
 );
@@ -35,6 +35,7 @@ app.use(
 app.route('/api/auth', authRouter);
 app.route('/', healthRouter);
 app.route('/upload', uploadRouter);
+app.route('/api/upload', uploadRouter);
 app.route('/', filesRouter);
 
 // Root route: serve frontend SPA dashboard or redirect to API info if Accept is JSON

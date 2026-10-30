@@ -23,10 +23,12 @@ healthRouter.get('/api', (c) => {
       health: 'GET /health',
       info: 'GET /api',
       upload: 'POST /upload (Requires API Key)',
+      createPresignedUpload: 'POST /api/upload/presigned (Requires API Key)',
+      executePresignedUpload: 'PUT /upload/presigned/:key (Public with HMAC token)',
       listFiles: 'GET /api/files (Requires API Key)',
       deleteFile: 'DELETE /api/files/:key (Requires API Key)',
-      streamPublic: 'GET /f/:key',
-      streamPrivate: 'GET /private/:key (Requires API Key)',
+      streamPublic: 'GET /f/:key (?download=true)',
+      streamPrivate: 'GET /private/:key (?download=true)',
     },
   });
 });

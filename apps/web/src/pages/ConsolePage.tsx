@@ -11,7 +11,16 @@ import type { StorageObject } from '../types';
 
 export const ConsolePage: React.FC = () => {
   const { t } = useI18n();
-  const { data, isLoading, refetch } = useFilesQuery({ limit: 100 });
+  const [pageIndex, setPageIndex] = useState(0);
+  const [cursorHistory, setCursorHistory] = useState<(string | null)[]>([null]);
+
+  const currentCursor = cursorHistory[pageIndex] || null;
+
+  const { data, isLoading, refetch } = useFilesQuery({
+    limit: 50,
+    cursor: currentCursor,
+  });
+
   const deleteMutation = useDeleteFileMutation();
   const batchDeleteMutation = useBatchDeleteMutation();
 
@@ -20,6 +29,25 @@ export const ConsolePage: React.FC = () => {
   const [signedFile, setSignedFile] = useState<StorageObject | null>(null);
 
   const objects = data?.objects || [];
+  const hasNextPage = Boolean(data?.truncated && data?.cursor);
+  const hasPrevPage = pageIndex > 0;
+
+  const handleNextPage = () => {
+    if (data?.cursor) {
+      setCursorHistory((prev) => {
+        const next = [...prev];
+        next[pageIndex + 1] = data.cursor!;
+        return next;
+      });
+      setPageIndex((p) => p + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (pageIndex > 0) {
+      setPageIndex((p) => p - 1);
+    }
+  };
 
   const handleDelete = (key: string) => {
     if (window.confirm(`Tem certeza de que deseja excluir o arquivo "${key}"?`)) {
@@ -47,6 +75,11 @@ export const ConsolePage: React.FC = () => {
         onGenerateSignedUrl={(file) => setSignedFile(file)}
         onDelete={handleDelete}
         onBatchDelete={handleBatchDelete}
+        hasNextPage={hasNextPage}
+        hasPrevPage={hasPrevPage}
+        onNextPage={handleNextPage}
+        onPrevPage={handlePrevPage}
+        pageIndex={pageIndex}
       />
 
       {/* Modais do Console */}

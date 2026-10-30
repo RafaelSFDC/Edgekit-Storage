@@ -290,6 +290,60 @@ Deletes multiple files in a single request.
 
 ---
 
+### 8. Presigned Upload (Handshake for Direct Frontend Uploads)
+Allows external backends to create a temporary, signed upload URL so browsers or frontend clients can upload large files directly to EdgeKit Storage without exposing the master `API_KEY` or exceeding serverless payload limits (e.g. Vercel 4.5MB limit).
+
+#### Step 1: Backend generates the presigned URL
+- **Method**: `POST`
+- **Route**: `/api/upload/presigned` (or `/upload/presigned`)
+- **Headers**: `X-API-Key: <your-api-key>`, `Content-Type: application/json`
+- **Body**:
+  ```json
+  {
+    "filename": "video.mp4",
+    "folder": "courses",
+    "preserveName": true,
+    "expiresInSeconds": 600
+  }
+  ```
+- **Response (`201 Created`)**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "uploadUrl": "https://storage.yourdomain.com/upload/presigned/courses/2026/10/hash_video.mp4?token=...&expires=1730000000",
+      "method": "PUT",
+      "key": "courses/2026/10/hash_video.mp4",
+      "url": "https://media.yourdomain.com/courses/2026/10/hash_video.mp4",
+      "expiresAt": 1730000000,
+      "expiresInSeconds": 600,
+      "mimeType": "video/mp4",
+      "maxSizeBytes": 26214400,
+      "isPrivate": false
+    }
+  }
+  ```
+
+#### Step 2: Browser uploads directly to R2
+```javascript
+// On frontend browser:
+await fetch(uploadUrl, {
+  method: 'PUT',
+  headers: { 'Content-Type': file.type },
+  body: file // raw File or Blob
+});
+```
+
+---
+
+### 9. Force File Download (`Content-Disposition`)
+To force a browser to download a file as an attachment instead of displaying it inline, append `?download=true`:
+- Public: `https://storage.yourdomain.com/f/reports/annual.pdf?download=true`
+- Private: `https://storage.yourdomain.com/private/reports/annual.pdf?token=...&expires=...&download=true`
+- Custom filename: Append `&filename=relatorio_final.pdf` to override the downloaded file name.
+
+---
+
 ## 📦 Ready-to-Use Snippets by Language (Copy-Paste)
 
 Instead of requiring heavy third-party packages, copy native snippets directly into your projects:

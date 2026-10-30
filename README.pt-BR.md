@@ -290,6 +290,62 @@ Remove dezenas ou centenas de arquivos do bucket R2 em uma única chamada.
 
 ---
 
+### 8. Upload Pré-Assinado (Handshake para Upload Direto do Frontend)
+Permite que seu backend (ex: Next.js na Vercel) gere uma URL temporária assinada com HMAC-SHA256 para que o navegador do usuário final faça o upload do arquivo diretamente para o EdgeKit Storage / R2.
+
+Isso elimina o limite de 4,5 MB da Vercel/Serverless, economiza a banda do seu servidor e **não expõe sua `API_KEY` mestra**.
+
+#### Passo 1: Seu backend gera a URL temporária
+- **Método**: `POST`
+- **Rota**: `/api/upload/presigned` (ou `/upload/presigned`)
+- **Headers**: `X-API-Key: <sua-api-key>`, `Content-Type: application/json`
+- **Body**:
+  ```json
+  {
+    "filename": "video.mp4",
+    "folder": "aulas",
+    "preserveName": true,
+    "expiresInSeconds": 600
+  }
+  ```
+- **Retorno (`201 Created`)**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "uploadUrl": "https://storage.seudominio.com/upload/presigned/aulas/2026/10/hash_video.mp4?token=...&expires=1730000000",
+      "method": "PUT",
+      "key": "aulas/2026/10/hash_video.mp4",
+      "url": "https://media.seudominio.com/aulas/2026/10/hash_video.mp4",
+      "expiresAt": 1730000000,
+      "expiresInSeconds": 600,
+      "mimeType": "video/mp4",
+      "maxSizeBytes": 26214400,
+      "isPrivate": false
+    }
+  }
+  ```
+
+#### Passo 2: O navegador do usuário envia os bytes diretamente
+```javascript
+// No frontend (React, Vue, mobile, etc.):
+await fetch(uploadUrl, {
+  method: 'PUT',
+  headers: { 'Content-Type': file.type },
+  body: file // File ou Blob binário
+});
+```
+
+---
+
+### 9. Download Forçado de Arquivos (`Content-Disposition`)
+Para forçar o navegador a baixar o arquivo como anexo em vez de visualizá-lo em aba aberta, passe `?download=true`:
+- Público: `https://storage.seudominio.com/f/relatorios/anual.pdf?download=true`
+- Privado: `https://storage.seudominio.com/private/relatorios/anual.pdf?token=...&expires=...&download=true`
+- Nome customizado: Adicione `&filename=meu_relatorio.pdf` para definir o nome do arquivo baixado.
+
+---
+
 ## 📦 Snippets Prontos por Linguagem (Copy-Paste)
 
 Em vez de forçar a instalação de pacotes externos pesados, você pode copiar os snippets nativos prontos diretamente para o seu projeto:
