@@ -9,6 +9,7 @@ import {
   timingSafeEqualStr,
 } from '../src/utils/keys';
 import { isMimeAllowed, resolveMimeType } from '../src/utils/mime';
+import { getCloudflareResizedUrl } from '../../../snippets/storage';
 import app from '../src/index';
 
 async function runTests() {
@@ -94,6 +95,13 @@ async function runTests() {
   assert.ok(presignedResult.uploadUrl.includes('token='));
   assert.ok(presignedResult.uploadUrl.includes('expires='));
   console.log('✅ Tokens e URLs de upload pré-assinado (Handshake) validados com sucesso!');
+
+  // 3.2. Teste do gerador de URL Cloudflare Image Resizing
+  console.log('3.2. Testando gerador de URL Cloudflare Image Resizing (getCloudflareResizedUrl)...');
+  const sampleUrl = 'https://media.mysite.com/2026/10/banner.jpg';
+  const cdnUrl = getCloudflareResizedUrl(sampleUrl, { width: 300, format: 'webp', quality: 80 });
+  assert.strictEqual(cdnUrl, 'https://media.mysite.com/cdn-cgi/image/width=300,quality=80,format=webp/2026/10/banner.jpg');
+  console.log('✅ URLs do Cloudflare Image Resizing formatadas com perfeição!');
 
   // 4. Teste de timingSafeEqualStr
   console.log('4. Testando comparação de tempo constante (timingSafeEqualStr)...');

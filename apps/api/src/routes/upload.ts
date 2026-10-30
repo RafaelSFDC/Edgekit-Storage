@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { AppContext } from '../env';
 import { apiKeyAuth } from '../middleware/auth';
 import { apiError, apiSuccess } from '../utils/response';
-import { isMimeAllowed, resolveMimeType } from '../utils/mime';
+import { isMimeAllowed, resolveMimeType, getExtensionFromFilename } from '../utils/mime';
 import {
   generateStorageKey,
   resolveFileUrl,
@@ -14,7 +14,7 @@ export const uploadRouter = new Hono<AppContext>();
 
 /**
  * 1. DIRECT UPLOAD: POST / (Requires API Key or Session Cookie)
- * Used by backend-to-backend calls or the admin dashboard.
+ * Supports single file upload or file + pre-resized variants (e.g. variant_thumb, variant_medium).
  */
 uploadRouter.post('/', apiKeyAuth(), async (c) => {
   let formData: FormData;
@@ -29,7 +29,7 @@ uploadRouter.post('/', apiKeyAuth(), async (c) => {
     );
   }
 
-  // Support "file" or "image" field
+  // Support "file" or "image" field as main original file
   const fileEntry = formData.get('file') || formData.get('image');
 
   if (!fileEntry || !(fileEntry instanceof File)) {
@@ -76,7 +76,23 @@ uploadRouter.post('/', apiKeyAuth(), async (c) => {
   const preserveName = formData.get('preserveName') === 'true' || formData.get('preserveName') === '1';
   const isPrivate = formData.get('private') === 'true' || formData.get('private') === '1';
 
-  // Generate storage key
+  // Check for pre-resized variants (fields starting with variant_ or variant[name])
+  const variantEntries: { name: string; file: File }[] = [];
+  for (const [fieldName, value] of formData.entries()) {
+    if (value instanceof File && value.size > 0) {
+      let variantName: string | null = null;
+      if (fieldName.startsWith('variant_')) {
+        variantName = fieldName.slice('variant_'.length).trim();
+      } else if (fieldName.startsWith('variant[') && fieldName.endsWith(']')) {
+        variantName = fieldName.slice('variant['.length, -1).trim();
+      }
+      if (variantName && variantName.length > 0) {
+        variantEntries.push({ name: variantName, file: value });
+      }
+    }
+  }
+
+  // Generate storage key for primary file
   const key = generateStorageKey({
     filename: file.name,
     folder,
@@ -86,7 +102,7 @@ uploadRouter.post('/', apiKeyAuth(), async (c) => {
   });
 
   try {
-    // Save to Cloudflare R2
+    // Save original to Cloudflare R2
     await c.env.BUCKET.put(key, file.stream(), {
       httpMetadata: {
         contentType: mimeType,
@@ -100,6 +116,43 @@ uploadRouter.post('/', apiKeyAuth(), async (c) => {
 
     const fileUrl = resolveFileUrl(key, c.req.url, c.env.PUBLIC_URL, isPrivate);
 
+    // Save pre-resized variants if provided
+    const lastDot = key.lastIndexOf('.');
+    const baseKey = lastDot !== -1 ? key.slice(0, lastDot) : key;
+    const variantsData: Record<
+      string,
+      { key: string; url: string; size: number; mimeType: string }
+    > = {};
+
+    for (const variant of variantEntries) {
+      const variantMime = resolveMimeType(variant.file.name, variant.file.type);
+      const variantExt =
+        getExtensionFromFilename(variant.file.name) ||
+        (lastDot !== -1 ? key.slice(lastDot + 1) : '');
+      const variantKey = `${baseKey}_${variant.name}${variantExt ? `.${variantExt}` : ''}`;
+
+      await c.env.BUCKET.put(variantKey, variant.file.stream(), {
+        httpMetadata: {
+          contentType: variantMime,
+        },
+        customMetadata: {
+          originalName: variant.file.name,
+          variantOf: key,
+          variantName: variant.name,
+          uploadedAt: new Date().toISOString(),
+          uploadedVia: 'direct',
+        },
+      });
+
+      const variantUrl = resolveFileUrl(variantKey, c.req.url, c.env.PUBLIC_URL, isPrivate);
+      variantsData[variant.name] = {
+        key: variantKey,
+        url: variantUrl,
+        size: variant.file.size,
+        mimeType: variantMime,
+      };
+    }
+
     return apiSuccess(
       c,
       {
@@ -110,6 +163,7 @@ uploadRouter.post('/', apiKeyAuth(), async (c) => {
         originalName: file.name,
         isPrivate,
         uploadedAt: new Date().toISOString(),
+        ...(Object.keys(variantsData).length > 0 ? { variants: variantsData } : {}),
       },
       201
     );
@@ -126,7 +180,7 @@ uploadRouter.post('/', apiKeyAuth(), async (c) => {
 
 /**
  * 2. GENERATE PRESIGNED UPLOAD URL (HANDSHAKE): POST /presigned (Requires API Key)
- * Called by external backends to create a temporary signed upload URL for the frontend.
+ * Called by external backends to create temporary signed upload URLs for the main file and optional variants.
  */
 uploadRouter.post('/presigned', apiKeyAuth(), async (c) => {
   let body: {
@@ -137,6 +191,7 @@ uploadRouter.post('/presigned', apiKeyAuth(), async (c) => {
     customName?: string;
     isPrivate?: boolean;
     expiresInSeconds?: number;
+    variants?: (string | { name: string; extension?: string })[];
   };
 
   try {
@@ -153,6 +208,7 @@ uploadRouter.post('/presigned', apiKeyAuth(), async (c) => {
     customName,
     isPrivate = false,
     expiresInSeconds = 600,
+    variants: rawVariants,
   } = body;
 
   if (!filename || typeof filename !== 'string' || filename.trim() === '') {
@@ -192,6 +248,41 @@ uploadRouter.post('/presigned', apiKeyAuth(), async (c) => {
 
   const publicOrPrivateUrl = resolveFileUrl(key, c.req.url, c.env.PUBLIC_URL, isPrivate);
 
+  // Generate presigned upload URLs for requested variants if provided
+  const lastDot = key.lastIndexOf('.');
+  const baseKey = lastDot !== -1 ? key.slice(0, lastDot) : key;
+  const originalExt = lastDot !== -1 ? key.slice(lastDot + 1) : '';
+
+  const variantsPresigned: Record<
+    string,
+    { uploadUrl: string; method: string; key: string; url: string; mimeType: string }
+  > = {};
+
+  if (Array.isArray(rawVariants) && rawVariants.length > 0) {
+    for (const item of rawVariants) {
+      const vName = typeof item === 'string' ? item.trim() : item?.name?.trim();
+      if (!vName) continue;
+      const vExt = (typeof item === 'object' && item?.extension) || originalExt || 'webp';
+      const vKey = `${baseKey}_${vName}${vExt ? `.${vExt}` : ''}`;
+      const vMime = resolveMimeType(vKey, typeof item === 'object' && item?.extension ? `image/${item.extension}` : mimeType);
+
+      const presignedV = await buildPresignedUploadUrl({
+        key: vKey,
+        secret: c.env.API_KEY,
+        requestUrl: c.req.url,
+        expiresInSeconds: duration,
+      });
+
+      variantsPresigned[vName] = {
+        uploadUrl: presignedV.uploadUrl,
+        method: 'PUT',
+        key: vKey,
+        url: resolveFileUrl(vKey, c.req.url, c.env.PUBLIC_URL, isPrivate),
+        mimeType: vMime,
+      };
+    }
+  }
+
   return apiSuccess(
     c,
     {
@@ -204,6 +295,7 @@ uploadRouter.post('/presigned', apiKeyAuth(), async (c) => {
       mimeType,
       maxSizeBytes: maxBytes,
       isPrivate: Boolean(isPrivate),
+      ...(Object.keys(variantsPresigned).length > 0 ? { variants: variantsPresigned } : {}),
     },
     201
   );

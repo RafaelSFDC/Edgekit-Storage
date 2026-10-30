@@ -172,6 +172,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@silvia-odwyer/photon':
+        specifier: ^0.3.3
+        version: 0.3.3
       hono:
         specifier: ^4.13.14
         version: 4.13.14
@@ -1220,6 +1223,9 @@ packages:
   '@shadcn/registry@0.2.1':
     resolution: {integrity: sha512-wMvZ3DGdnhCwtpeFbwKybSGfCcP52bZX77jMKgZvupmirgyA5KRLlkeQXkI2RGHIaD8TX2iWe2wcIEjjqzg2FQ==}
     engines: {node: '>=20.18.1'}
+
+  '@silvia-odwyer/photon@0.3.3':
+    resolution: {integrity: sha512-8BhUjEch4slwRe8uXnaA4vcA5uiiOTT90UMsxulOj2gN98X1p0q9Z4Ysk4DkD05uNgbR9XoSqtZ37w+33w4QKQ==}
 
   '@sindresorhus/is@7.2.0':
     resolution: {integrity: sha512-P1Cz1dWaFfR4IR+U13mqqiGsLFf1KbayybWwdd2vfctdV6hDpUkgCY0nKOLLTMSoRd/jJNjtbqzf13K8DCCXQw==}
@@ -3432,6 +3438,8 @@ snapshots:
       zod: 4.6.7
     transitivePeerDependencies:
       - supports-color
+
+  '@silvia-odwyer/photon@0.3.3': {}
 
   '@sindresorhus/is@7.2.0': {}
 

@@ -338,11 +338,72 @@ await fetch(uploadUrl, {
 
 ---
 
-### 9. Download Forçado de Arquivos (`Content-Disposition`)
-Para forçar o navegador a baixar o arquivo como anexo em vez de visualizá-lo em aba aberta, passe `?download=true`:
-- Público: `https://storage.seudominio.com/f/relatorios/anual.pdf?download=true`
-- Privado: `https://storage.seudominio.com/private/relatorios/anual.pdf?token=...&expires=...&download=true`
-- Nome customizado: Adicione `&filename=meu_relatorio.pdf` para definir o nome do arquivo baixado.
+---
+
+### 10. Upload de Variantes Pré-Redimensionadas (Sharp / Pillow / Background)
+Se você não deseja pagar pelos planos da Cloudflare para processar imagens, seu backend (Node.js com `sharp`, Python com `Pillow`, etc.) pode redimensionar as imagens localmente e enviá-las agrupadas para o EdgeKit Storage.
+
+O EdgeKit salva todas as variantes no bucket R2 com sufixos padronizados (`_thumb`, `_medium`, etc.) e retorna um mapa consolidado com a URL de cada variante:
+
+#### Exemplo com FormData / cURL:
+Campos adicionais com o prefixo `variant_<nome>` (ex: `variant_thumb`, `variant_medium`):
+```bash
+curl -X POST "https://storage.seudominio.com/upload" \
+  -H "X-API-Key: sua-api-key" \
+  -F "file=@avatar.png" \
+  -F "variant_thumb=@avatar_thumb.webp" \
+  -F "variant_medium=@avatar_medium.webp" \
+  -F "folder=usuarios"
+```
+
+#### Retorno consolidado com as variantes:
+```json
+{
+  "success": true,
+  "data": {
+    "key": "usuarios/2026/10/hash_avatar.png",
+    "url": "https://media.seudominio.com/usuarios/2026/10/hash_avatar.png",
+    "size": 524288,
+    "mimeType": "image/png",
+    "variants": {
+      "thumb": {
+        "key": "usuarios/2026/10/hash_avatar_thumb.webp",
+        "url": "https://media.seudominio.com/usuarios/2026/10/hash_avatar_thumb.webp",
+        "size": 14200,
+        "mimeType": "image/webp"
+      },
+      "medium": {
+        "key": "usuarios/2026/10/hash_avatar_medium.webp",
+        "url": "https://media.seudominio.com/usuarios/2026/10/hash_avatar_medium.webp",
+        "size": 68400,
+        "mimeType": "image/webp"
+      }
+    }
+  }
+}
+```
+
+---
+
+### 11. Redimensionamento Dinâmico via Cloudflare CDN (On-the-Fly)
+Se você possui um domínio personalizado com o Cloudflare Image Resizing habilitado na zona, nenhuma configuração no servidor é necessária. Você pode consumir a imagem diretamente na URL passando os parâmetros da CDN:
+
+```
+https://media.seudominio.com/cdn-cgi/image/width=300,height=300,quality=80,format=webp/caminho/foto.jpg
+```
+
+Helper pronto no snippet TypeScript:
+```typescript
+import { getCloudflareResizedUrl } from '@/lib/storage';
+
+const avatarThumb = getCloudflareResizedUrl(file.url, {
+  width: 200,
+  height: 200,
+  format: 'webp',
+  quality: 85,
+  fit: 'cover',
+});
+```
 
 ---
 

@@ -344,6 +344,73 @@ To force a browser to download a file as an attachment instead of displaying it 
 
 ---
 
+### 10. Multi-Variant Image Upload (Pre-Resized by Backend)
+If you don't want to pay for Cloudflare's Image Resizing add-on, your backend (Node.js with `sharp`, Python with `Pillow`, etc.) can resize images before uploading.
+
+EdgeKit Storage saves the original file and each variant under the same partition with matching suffixes (`_thumb`, `_medium`, etc.) and returns a unified JSON payload containing the URL of each variant:
+
+#### Example using FormData / cURL:
+Append extra fields prefixed with `variant_<name>`:
+```bash
+curl -X POST "https://storage.yourdomain.com/upload" \
+  -H "X-API-Key: your-api-key" \
+  -F "file=@avatar.png" \
+  -F "variant_thumb=@avatar_thumb.webp" \
+  -F "variant_medium=@avatar_medium.webp" \
+  -F "folder=users"
+```
+
+#### Consolidated Response:
+```json
+{
+  "success": true,
+  "data": {
+    "key": "users/2026/10/hash_avatar.png",
+    "url": "https://media.yourdomain.com/users/2026/10/hash_avatar.png",
+    "size": 524288,
+    "mimeType": "image/png",
+    "variants": {
+      "thumb": {
+        "key": "users/2026/10/hash_avatar_thumb.webp",
+        "url": "https://media.yourdomain.com/users/2026/10/hash_avatar_thumb.webp",
+        "size": 14200,
+        "mimeType": "image/webp"
+      },
+      "medium": {
+        "key": "users/2026/10/hash_avatar_medium.webp",
+        "url": "https://media.yourdomain.com/users/2026/10/hash_avatar_medium.webp",
+        "size": 68400,
+        "mimeType": "image/webp"
+      }
+    }
+  }
+}
+```
+
+---
+
+### 11. On-The-Fly Image Resizing via Cloudflare CDN
+If your custom domain has Cloudflare Image Resizing enabled, no server configuration or extra uploads are needed. Simply consume the image URL with CDN transformation parameters:
+
+```
+https://media.yourdomain.com/cdn-cgi/image/width=300,height=300,quality=80,format=webp/path/photo.jpg
+```
+
+Helper in the TypeScript snippet:
+```typescript
+import { getCloudflareResizedUrl } from '@/lib/storage';
+
+const avatarThumb = getCloudflareResizedUrl(file.url, {
+  width: 200,
+  height: 200,
+  format: 'webp',
+  quality: 85,
+  fit: 'cover',
+});
+```
+
+---
+
 ## 📦 Ready-to-Use Snippets by Language (Copy-Paste)
 
 Instead of requiring heavy third-party packages, copy native snippets directly into your projects:
