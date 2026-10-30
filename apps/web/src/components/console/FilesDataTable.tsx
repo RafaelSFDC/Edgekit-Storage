@@ -172,7 +172,7 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
             placeholder={t.console.searchPlaceholder}
-            className="pl-9 h-9 text-xs"
+            className="pl-9"
           />
         </div>
 
@@ -180,7 +180,7 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
         <div className="flex items-center gap-2 flex-wrap">
           {/* Filtro de Tipo */}
           <Select value={typeFilter} onValueChange={(val) => setTypeFilter(val ?? 'all')}>
-            <SelectTrigger className="h-9 text-xs w-[140px]">
+            <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
             <SelectContent>
@@ -195,7 +195,7 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
           {/* Filtro de Pasta (se existirem) */}
           {folders.length > 0 && (
             <Select value={folderFilter} onValueChange={(val) => setFolderFilter(val ?? 'all')}>
-              <SelectTrigger className="h-9 text-xs w-[130px]">
+              <SelectTrigger className="w-[130px]">
                 <SelectValue placeholder="Pasta" />
               </SelectTrigger>
               <SelectContent>
@@ -212,22 +212,16 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
           {/* Atualizar */}
           <Button
             variant="outline"
-            size="sm"
             onClick={onRefresh}
-            className="h-9 text-xs gap-1.5"
             disabled={isLoading}
           >
-            <RefreshCw className={`size-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={isLoading ? 'animate-spin' : ''} />
             <span className="hidden sm:inline">{t.common.refresh}</span>
           </Button>
 
           {/* Botão Novo Upload */}
-          <Button
-            size="sm"
-            onClick={onOpenUpload}
-            className="h-9 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Upload className="size-3.5" />
+          <Button onClick={onOpenUpload}>
+            <Upload />
             <span>{t.console.uploadButton}</span>
           </Button>
         </div>

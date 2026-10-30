@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { StatCard } from '../components/common/StatCard';
 import { useI18n } from '../i18n/context';
 import {
   useWebhooksQuery,
@@ -162,29 +163,33 @@ export const WebhooksPage: React.FC = () => {
 
       {/* 2. Overview Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 bg-card/60 backdrop-blur-xs border-border/70">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">{t.webhooks.quickStatsWebhooks}</span>
-            <WebhookIcon className="size-4 text-primary" />
-          </div>
-          <p className="text-2xl font-bold mt-2 font-mono">{totalWebhooks}</p>
-        </Card>
+        <StatCard
+          title={t.webhooks.quickStatsWebhooks}
+          value={totalWebhooks}
+          icon={WebhookIcon}
+          iconClassName="text-primary"
+          description={t.webhooks.quickStatsWebhooksDesc}
+          isLoading={isLoading}
+        />
 
-        <Card className="p-4 bg-card/60 backdrop-blur-xs border-border/70">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">{t.webhooks.quickStatsDeliveries}</span>
-            <History className="size-4 text-sky-500" />
-          </div>
-          <p className="text-2xl font-bold mt-2 font-mono">{totalDeliveries}</p>
-        </Card>
+        <StatCard
+          title={t.webhooks.quickStatsDeliveries}
+          value={totalDeliveries}
+          icon={History}
+          iconClassName="text-sky-500"
+          description={t.webhooks.quickStatsDeliveriesDesc}
+          isLoading={isLoading}
+        />
 
-        <Card className="p-4 bg-card/60 backdrop-blur-xs border-border/70">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">{t.webhooks.quickStatsSuccessRate}</span>
-            <ShieldCheck className="size-4 text-emerald-500" />
-          </div>
-          <p className="text-2xl font-bold mt-2 font-mono text-emerald-500">{successRate}%</p>
-        </Card>
+        <StatCard
+          title={t.webhooks.quickStatsSuccessRate}
+          value={`${successRate}%`}
+          icon={ShieldCheck}
+          iconClassName="text-emerald-500"
+          valueClassName={successRate >= 90 ? 'text-emerald-500' : successRate >= 70 ? 'text-amber-500' : 'text-destructive'}
+          description={t.webhooks.quickStatsSuccessRateDesc}
+          isLoading={isLoading}
+        />
       </div>
 
       {/* 3. Main Content: Webhooks List & Verification Guide */}

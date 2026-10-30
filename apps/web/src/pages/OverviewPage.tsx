@@ -18,6 +18,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { StatCard } from '../components/common/StatCard';
 import { UploadDialog } from '../components/console/UploadDialog';
 import { formatBytes } from '../lib/utils';
 
@@ -38,76 +39,44 @@ export const OverviewPage: React.FC = () => {
       {/* 1. Métricas principais do Cluster Storage */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total de Arquivos */}
-        <Card className="shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">
-              {t.stats.totalFiles}
-            </CardTitle>
-            <HardDrive className="size-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold tracking-tight">
-              {isLoading ? '...' : stats?.totalFiles ?? 0}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats?.privateFiles ? t.stats.privateFilesCount(stats.privateFiles) : t.stats.allItemsR2}
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title={t.stats.totalFiles}
+          value={stats?.totalFiles ?? 0}
+          icon={HardDrive}
+          iconClassName="text-primary"
+          description={stats?.privateFiles ? t.stats.privateFilesCount(stats.privateFiles) : t.stats.allItemsR2}
+          isLoading={isLoading}
+        />
 
         {/* Armazenamento Usado */}
-        <Card className="shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">
-              {t.stats.storageUsed}
-            </CardTitle>
-            <Database className="size-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold tracking-tight">
-              {isLoading ? '...' : formatBytes(stats?.totalBytes ?? 0)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Cloudflare R2 sem taxa de egress
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title={t.stats.storageUsed}
+          value={formatBytes(stats?.totalBytes ?? 0)}
+          icon={Database}
+          iconClassName="text-emerald-500"
+          description="Cloudflare R2 sem taxa de egress"
+          isLoading={isLoading}
+        />
 
         {/* Arquivos Privados */}
-        <Card className="shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">
-              {t.stats.privateFiles}
-            </CardTitle>
-            <Lock className="size-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold tracking-tight">
-              {isLoading ? '...' : stats?.privateFiles ?? 0}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Acesso restrito via URL assinada
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title={t.stats.privateFiles}
+          value={stats?.privateFiles ?? 0}
+          icon={Lock}
+          iconClassName="text-amber-500"
+          description="Acesso restrito via URL assinada"
+          isLoading={isLoading}
+        />
 
         {/* Pastas Criadas */}
-        <Card className="shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">
-              {t.stats.foldersCount}
-            </CardTitle>
-            <FolderTree className="size-4 text-purple-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold tracking-tight">
-              {isLoading ? '...' : stats?.foldersCount ?? 0}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Estrutura hierárquica por chave
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title={t.stats.foldersCount}
+          value={stats?.foldersCount ?? 0}
+          icon={FolderTree}
+          iconClassName="text-purple-500"
+          description="Estrutura hierárquica por chave"
+          isLoading={isLoading}
+        />
       </div>
 
       {/* 2. Atalhos para as demais áreas */}

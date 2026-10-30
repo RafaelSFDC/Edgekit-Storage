@@ -36,7 +36,7 @@ export const TopHeader: React.FC = () => {
   const { locale, setLocale, t } = useI18n();
   const { resolvedTheme, toggleTheme } = useTheme();
   const { logout } = useAuth();
-  const { state } = useSidebar();
+  const { state, isMobile } = useSidebar();
 
   // Rota ativa para os breadcrumbs integrados no header
   const routerState = useRouterState();
@@ -48,6 +48,8 @@ export const TopHeader: React.FC = () => {
         return t.breadcrumbs.console;
       case '/snippets':
         return t.breadcrumbs.snippets;
+      case '/webhooks':
+        return t.breadcrumbs.webhooks;
       case '/':
       default:
         return t.breadcrumbs.overview;
@@ -55,16 +57,17 @@ export const TopHeader: React.FC = () => {
   };
 
   const currentPage = getBreadcrumbs();
+  const isDesktopCollapsed = !isMobile && state === 'collapsed';
 
   return (
     <header className="sticky top-0 z-40 flex h-12 w-full border-b border-border bg-card/90 backdrop-blur-md select-none">
-      {/* 1. Célula Superior Esquerda (Alinhada com a largura da Sidebar) */}
+      {/* 1. Célula Superior Esquerda (Alinhada com a largura da Sidebar no desktop) */}
       <div
         className={cn(
-          'flex h-full items-center border-r border-border bg-card transition-[width] duration-200 ease-in-out shrink-0',
-          state === 'collapsed'
+          'hidden lg:flex h-full items-center border-r border-border bg-card transition-[width] duration-200 ease-in-out shrink-0 px-3',
+          isDesktopCollapsed
             ? 'w-[var(--sidebar-width-icon)] justify-center px-0'
-            : 'w-full lg:w-[var(--sidebar-width)] justify-between px-3'
+            : 'w-[var(--sidebar-width)]'
         )}
       >
         <Link to="/" className="flex items-center gap-2 overflow-hidden outline-hidden">
@@ -72,26 +75,21 @@ export const TopHeader: React.FC = () => {
             <EdgekitLogo size={20} module="storage" />
           </div>
 
-          {state !== 'collapsed' && (
+          {!isDesktopCollapsed && (
             <div className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
               <span className="font-bold tracking-tight text-foreground text-sm">Edgekit</span>
               <span className="font-semibold text-primary text-sm">Storage</span>
             </div>
           )}
         </Link>
-
-        {/* Mobile toggle button */}
-        <div className="lg:hidden">
-          <SidebarTrigger />
-        </div>
       </div>
 
       {/* 2. Barra Superior Direita com Breadcrumbs e Ações */}
       <div className="flex flex-1 items-center justify-between px-3 sm:px-4 gap-3 overflow-hidden">
-        {/* Esquerda: Breadcrumbs na barra superior + Trigger desktop */}
+        {/* Esquerda: Breadcrumbs na barra superior + Trigger desktop & mobile */}
         <div className="flex items-center gap-2 overflow-hidden">
-          <SidebarTrigger className="hidden lg:flex shrink-0" />
-          <Breadcrumb>
+          <SidebarTrigger className="shrink-0" />
+          <Breadcrumb className="hidden sm:flex">
             <BreadcrumbList className="text-xs whitespace-nowrap">
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>

@@ -22,6 +22,7 @@ import {
 import type { StorageObject } from '../../types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -51,21 +52,23 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
   {
     id: 'select',
     header: ({ table }) => (
-      <input
-        type="checkbox"
-        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate' as any)}
-        onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected()
+            ? true
+            : table.getIsSomePageRowsSelected()
+            ? 'indeterminate'
+            : false
+        }
+        onCheckedChange={(val) => table.toggleAllPageRowsSelected(!!val)}
         aria-label="Selecionar todos os arquivos da página"
-        className="size-4 rounded border-border text-primary focus:ring-primary cursor-pointer accent-sky-500"
       />
     ),
     cell: ({ row }) => (
-      <input
-        type="checkbox"
+      <Checkbox
         checked={row.getIsSelected()}
-        onChange={(e) => row.toggleSelected(!!e.target.checked)}
+        onCheckedChange={(val) => row.toggleSelected(!!val)}
         aria-label="Selecionar arquivo"
-        className="size-4 rounded border-border text-primary focus:ring-primary cursor-pointer accent-sky-500"
       />
     ),
     enableSorting: false,

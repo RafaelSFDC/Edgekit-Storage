@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useI18n } from '../../i18n/context';
 import { copyToClipboard } from '../../lib/utils';
 import type { Webhook, CreateWebhookPayload, UpdateWebhookPayload } from '../../types';
@@ -162,24 +163,25 @@ export const WebhookFormDialog: React.FC<WebhookFormDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg sm:max-w-xl">
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
+      <DialogContent className="sm:max-w-xl p-0 gap-0 max-h-[85vh] flex flex-col overflow-hidden">
+        <DialogHeader className="p-6 pb-4 border-b border-border/60 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
               <WebhookIcon className="size-4" />
             </div>
             <div>
               <DialogTitle>
                 {isEditing ? t.webhooks.editWebhook : t.webhooks.addWebhook}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="mt-0.5">
                 {t.webhooks.subtitle}
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {/* Friendly Name */}
           <div className="space-y-1.5">
             <Label htmlFor="webhook-name" className="text-xs font-medium flex items-center gap-1.5">
@@ -260,11 +262,9 @@ export const WebhookFormDialog: React.FC<WebhookFormDialogProps> = ({
               {/* Wildcard * */}
               <label className="flex items-center justify-between cursor-pointer py-1 text-xs font-medium text-foreground">
                 <span>{t.webhooks.allEvents}</span>
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={selectedEvents.includes('*')}
-                  onChange={handleToggleAllEvents}
-                  className="rounded border-border size-4 text-primary focus:ring-primary"
+                  onCheckedChange={handleToggleAllEvents}
                 />
               </label>
 
@@ -277,12 +277,10 @@ export const WebhookFormDialog: React.FC<WebhookFormDialogProps> = ({
                       className="flex items-center justify-between cursor-pointer py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <span className="font-mono text-[11px]">{t.webhooks[event.labelKey]}</span>
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={isChecked}
                         disabled={selectedEvents.includes('*')}
-                        onChange={() => handleToggleEvent(event.id)}
-                        className="rounded border-border size-3.5 text-primary focus:ring-primary disabled:opacity-50"
+                        onCheckedChange={() => handleToggleEvent(event.id)}
                       />
                     </label>
                   );
@@ -323,18 +321,19 @@ export const WebhookFormDialog: React.FC<WebhookFormDialogProps> = ({
             <Switch checked={isActive} onCheckedChange={setIsActive} />
           </div>
 
-          <DialogFooter className="pt-2">
+          </div>
+
+          <DialogFooter className="p-4 sm:p-6 sm:py-4 border-t border-border/60 bg-muted/30 shrink-0">
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
               {t.common.cancel}
             </Button>
-            <Button type="submit" size="sm" disabled={isLoading} className="gap-2">
-              {isLoading && <Loader2 className="size-3.5 animate-spin" />}
+            <Button type="submit" disabled={isLoading} className="gap-2">
+              {isLoading && <Loader2 className="size-4 animate-spin" />}
               {t.common.save}
             </Button>
           </DialogFooter>

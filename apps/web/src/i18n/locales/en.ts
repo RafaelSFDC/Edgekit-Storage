@@ -166,8 +166,11 @@ export const en: Translations = {
     payloadPreview: 'Payload JSON Sent',
     responsePreview: 'Server Response',
     quickStatsWebhooks: 'Configured Webhooks',
+    quickStatsWebhooksDesc: 'Active endpoints in cluster',
     quickStatsDeliveries: 'Total Deliveries',
+    quickStatsDeliveriesDesc: 'Dispatches logged in history',
     quickStatsSuccessRate: 'Success Rate',
+    quickStatsSuccessRateDesc: 'Deliveries completed successfully',
     integrationGuide: 'How to Verify Signatures',
   },
 };

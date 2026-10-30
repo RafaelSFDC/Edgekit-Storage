@@ -7,6 +7,7 @@ import {
   Search,
 } from 'lucide-react';
 import { Link, useRouterState } from '@tanstack/react-router';
+import { EdgekitLogo } from '../common/EdgekitLogo';
 import { useI18n } from '../../i18n/context';
 import { useFilesQuery } from '../../hooks/api/use-files';
 import {
@@ -24,7 +25,7 @@ import { cn } from '@/lib/utils';
 
 export const AppSidebar: React.FC = () => {
   const { t } = useI18n();
-  const { state, toggleSidebar } = useSidebar();
+  const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Queries para badges ao vivo na sidebar
@@ -71,6 +72,25 @@ export const AppSidebar: React.FC = () => {
 
   return (
     <Sidebar collapsible="icon" className="select-none">
+      {/* 0. Header com Logo na Sidebar (visível no mobile drawer) */}
+      <div className="flex h-12 shrink-0 items-center px-3 border-b border-border lg:hidden">
+        <Link
+          to="/"
+          onClick={() => {
+            if (isMobile) setOpenMobile(false);
+          }}
+          className="flex items-center gap-2 overflow-hidden outline-hidden"
+        >
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20 text-primary shadow-xs">
+            <EdgekitLogo size={20} module="storage" />
+          </div>
+          <div className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
+            <span className="font-bold tracking-tight text-foreground text-sm">Edgekit</span>
+            <span className="font-semibold text-primary text-sm">Storage</span>
+          </div>
+        </Link>
+      </div>
+
       {/* 1. Barra de Busca Rápida Estilo Cloudflare (Ctrl + K) */}
       <SidebarHeader className="border-b border-border/50 pb-2">
         {!isCollapsed ? (
@@ -123,6 +143,9 @@ export const AppSidebar: React.FC = () => {
                 >
                   <Link
                     to={item.to}
+                    onClick={() => {
+                      if (isMobile) setOpenMobile(false);
+                    }}
                     className={cn(
                       'flex items-center gap-2.5',
                       isCollapsed && 'size-8 justify-center p-0'

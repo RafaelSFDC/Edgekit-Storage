@@ -166,8 +166,11 @@ export const ptBR: Translations = {
     payloadPreview: 'Payload JSON Enviado',
     responsePreview: 'Resposta do Servidor',
     quickStatsWebhooks: 'Webhooks Configurados',
+    quickStatsWebhooksDesc: 'Endpoints ativos no cluster',
     quickStatsDeliveries: 'Total de Disparos',
+    quickStatsDeliveriesDesc: 'Disparos registrados no histórico',
     quickStatsSuccessRate: 'Taxa de Sucesso',
+    quickStatsSuccessRateDesc: 'Entregas concluídas com êxito',
     integrationGuide: 'Como Validar a Assinatura',
   },
 };

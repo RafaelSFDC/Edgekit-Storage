@@ -16,6 +16,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -85,20 +86,20 @@ export const SignedUrlDialog: React.FC<SignedUrlDialogProps> = ({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md p-0 gap-0 max-h-[85vh] flex flex-col overflow-hidden">
+        <DialogHeader className="p-6 pb-4 border-b border-border/60 shrink-0">
           <div className="flex items-center gap-2 text-amber-500">
             <KeyRound className="size-4" />
-            <DialogTitle className="text-sm font-semibold">{t.signedModal.title}</DialogTitle>
+            <DialogTitle>{t.signedModal.title}</DialogTitle>
           </div>
-          <DialogDescription className="text-xs">
+          <DialogDescription className="mt-0.5">
             {t.signedModal.subtitle}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 py-2">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {/* Arquivo selecionado */}
-          <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-2.5 border border-border/70">
+          <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 border border-border/70">
             <span className="text-[11px] text-muted-foreground font-medium">Arquivo privado:</span>
             <span className="text-xs font-mono font-semibold text-foreground truncate" title={file?.key}>
               {file?.key}
@@ -107,9 +108,9 @@ export const SignedUrlDialog: React.FC<SignedUrlDialogProps> = ({
 
           {/* Duração */}
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs">{t.signedModal.durationLabel}</Label>
+            <Label htmlFor="duration-select">{t.signedModal.durationLabel}</Label>
             <Select value={duration} onValueChange={(val) => setDuration(val ?? '3600')}>
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger id="duration-select" className="w-full">
                 <SelectValue placeholder="Selecione o tempo de expiração" />
               </SelectTrigger>
               <SelectContent>
@@ -126,7 +127,7 @@ export const SignedUrlDialog: React.FC<SignedUrlDialogProps> = ({
           {signedResult && (
             <div className="flex flex-col gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 animate-in fade-in-50">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                   {t.signedModal.urlLabel}
                 </span>
                 <span className="text-[10px] text-muted-foreground font-mono">
@@ -134,57 +135,53 @@ export const SignedUrlDialog: React.FC<SignedUrlDialogProps> = ({
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <input
+                <Input
                   type="text"
                   readOnly
                   value={signedResult.url}
-                  className="flex-1 h-8 px-2 rounded bg-background border border-border text-xs font-mono text-muted-foreground select-all outline-hidden"
+                  className="font-mono text-xs select-all bg-background"
                 />
                 <Button
-                  size="sm"
                   variant="outline"
                   onClick={handleCopy}
-                  className="h-8 text-xs shrink-0 gap-1"
+                  className="shrink-0 gap-1"
                 >
-                  <Copy className="size-3" />
+                  <Copy className="size-3.5" />
                   <span>{t.common.copy}</span>
                 </Button>
                 <Button
-                  size="sm"
                   variant="ghost"
+                  size="icon"
                   render={
                     <a href={signedResult.url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="size-3.5" />
+                      <ExternalLink className="size-4" />
                     </a>
                   }
-                  className="h-8 size-8 p-0 shrink-0"
+                  className="shrink-0"
                 />
               </div>
             </div>
           )}
         </div>
 
-        <DialogFooter className="pt-2">
+        <DialogFooter className="p-4 sm:p-6 sm:py-4 border-t border-border/60 bg-muted/30 shrink-0">
           <Button
             type="button"
             variant="outline"
-            size="sm"
             onClick={() => onOpenChange(false)}
-            className="text-xs"
           >
             {t.common.close}
           </Button>
 
           <Button
             type="button"
-            size="sm"
             onClick={handleGenerate}
             disabled={signedMutation.isPending}
-            className="text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+            className="gap-1.5"
           >
             {signedMutation.isPending ? (
               <>
-                <Loader2 className="size-3.5 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
                 <span>{t.signedModal.generating}</span>
               </>
             ) : (

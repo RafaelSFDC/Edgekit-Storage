@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -84,18 +85,18 @@ export const WebhookDeliveriesDialog: React.FC<WebhookDeliveriesDialogProps> = (
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl sm:max-w-3xl max-h-[85vh] flex flex-col p-6">
-        <DialogHeader className="shrink-0 border-b border-border/50 pb-4">
+      <DialogContent className="sm:max-w-3xl p-0 gap-0 max-h-[85vh] flex flex-col overflow-hidden">
+        <DialogHeader className="p-6 pb-4 border-b border-border/60 shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
                 <History className="size-5" />
               </div>
               <div>
-                <DialogTitle className="text-base font-semibold">
+                <DialogTitle>
                   {t.webhooks.deliveriesTitle}
                 </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                <DialogDescription className="mt-0.5">
                   {webhook ? `${webhook.name} • ${webhook.url}` : t.webhooks.deliveriesSubtitle}
                 </DialogDescription>
               </div>
@@ -103,19 +104,18 @@ export const WebhookDeliveriesDialog: React.FC<WebhookDeliveriesDialogProps> = (
 
             <Button
               variant="outline"
-              size="sm"
               onClick={() => refetch()}
               disabled={isLoading || isRefetching}
-              className="h-8 gap-1.5 shrink-0"
+              className="gap-1.5 shrink-0"
             >
-              <RotateCw className={`size-3.5 ${isRefetching ? 'animate-spin' : ''}`} />
-              <span className="text-xs">{t.common.refresh}</span>
+              <RotateCw className={isRefetching ? 'animate-spin' : ''} />
+              <span>{t.common.refresh}</span>
             </Button>
           </div>
         </DialogHeader>
 
         {/* Deliveries List */}
-        <div className="flex-1 overflow-y-auto py-3 space-y-2 pr-1">
+        <div className="flex-1 overflow-y-auto p-6 space-y-3">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
               <Loader2 className="size-6 animate-spin text-primary" />
@@ -267,6 +267,12 @@ export const WebhookDeliveriesDialog: React.FC<WebhookDeliveriesDialogProps> = (
             })
           )}
         </div>
+
+        <DialogFooter className="p-4 sm:p-6 sm:py-4 border-t border-border/60 bg-muted/30 shrink-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t.common.close}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
