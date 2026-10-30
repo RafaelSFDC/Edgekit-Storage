@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import type { StorageObject } from '../../types';
 import { filesColumns, type FilesTableMeta } from './files-columns';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -151,14 +152,18 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
 
   const selectedRows = table.getSelectedRowModel().rows;
   const selectedCount = selectedRows.length;
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
 
   const handleBatchDeleteClick = () => {
     if (selectedCount === 0) return;
+    setBatchDeleteOpen(true);
+  };
+
+  const handleConfirmBatchDelete = () => {
     const keys = selectedRows.map((r) => r.original.key);
-    if (window.confirm(t.console.batchDeleteConfirm(keys.length))) {
-      onBatchDelete(keys);
-      setRowSelection({});
-    }
+    onBatchDelete(keys);
+    setRowSelection({});
+    setBatchDeleteOpen(false);
   };
 
   return (
@@ -370,6 +375,17 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={batchDeleteOpen}
+        onOpenChange={setBatchDeleteOpen}
+        title="Excluir Arquivos em Lote"
+        description={t.console.batchDeleteConfirm(selectedCount)}
+        confirmText="Excluir Selecionados"
+        cancelText={t.common.cancel}
+        variant="destructive"
+        onConfirm={handleConfirmBatchDelete}
+      />
     </div>
   );
 };

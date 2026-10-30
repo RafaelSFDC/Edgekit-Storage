@@ -13,11 +13,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogBody,
   DialogFooter,
+  DialogMedia,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Field, FieldLabel } from '@/components/ui/field';
 import {
   Select,
   SelectTrigger,
@@ -86,18 +89,22 @@ export const SignedUrlDialog: React.FC<SignedUrlDialogProps> = ({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="sm:max-w-md p-0 gap-0 max-h-[85vh] flex flex-col overflow-hidden">
-        <DialogHeader className="p-6 pb-4 border-b border-border/60 shrink-0">
-          <div className="flex items-center gap-2 text-amber-500">
-            <KeyRound className="size-4" />
-            <DialogTitle>{t.signedModal.title}</DialogTitle>
+      <DialogContent size="md" className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b px-6 py-4">
+          <div className="flex items-center gap-2.5">
+            <DialogMedia className="bg-amber-500/10 text-amber-600 dark:text-amber-400 mb-0">
+              <KeyRound className="size-4" />
+            </DialogMedia>
+            <div>
+              <DialogTitle>{t.signedModal.title}</DialogTitle>
+              <DialogDescription className="mt-0.5">
+                {t.signedModal.subtitle}
+              </DialogDescription>
+            </div>
           </div>
-          <DialogDescription className="mt-0.5">
-            {t.signedModal.subtitle}
-          </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <DialogBody className="p-6 space-y-4">
           {/* Arquivo selecionado */}
           <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 border border-border/70">
             <span className="text-[11px] text-muted-foreground font-medium">Arquivo privado:</span>
@@ -107,8 +114,8 @@ export const SignedUrlDialog: React.FC<SignedUrlDialogProps> = ({
           </div>
 
           {/* Duração */}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="duration-select">{t.signedModal.durationLabel}</Label>
+          <Field>
+            <FieldLabel htmlFor="duration-select">{t.signedModal.durationLabel}</FieldLabel>
             <Select value={duration} onValueChange={(val) => setDuration(val ?? '3600')}>
               <SelectTrigger id="duration-select" className="w-full">
                 <SelectValue placeholder="Selecione o tempo de expiração" />
@@ -121,7 +128,7 @@ export const SignedUrlDialog: React.FC<SignedUrlDialogProps> = ({
                 <SelectItem value="604800">7 dias (máximo)</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </Field>
 
           {/* Resultado do Link Assinado */}
           {signedResult && (
@@ -162,9 +169,9 @@ export const SignedUrlDialog: React.FC<SignedUrlDialogProps> = ({
               </div>
             </div>
           )}
-        </div>
+        </DialogBody>
 
-        <DialogFooter className="p-4 sm:p-6 sm:py-4 border-t border-border/60 bg-muted/30 shrink-0">
+        <DialogFooter variant="default">
           <Button
             type="button"
             variant="outline"

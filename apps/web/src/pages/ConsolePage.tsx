@@ -5,6 +5,7 @@ import { FilesDataTable } from '../components/console/FilesDataTable';
 import { UploadDialog } from '../components/console/UploadDialog';
 import { FilePreviewDialog } from '../components/console/FilePreviewDialog';
 import { SignedUrlDialog } from '../components/console/SignedUrlDialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useFilesQuery, useDeleteFileMutation, useBatchDeleteMutation } from '../hooks/api/use-files';
 import { useI18n } from '../i18n/context';
 import type { StorageObject } from '../types';
@@ -27,6 +28,7 @@ export const ConsolePage: React.FC = () => {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [previewFile, setPreviewFile] = useState<StorageObject | null>(null);
   const [signedFile, setSignedFile] = useState<StorageObject | null>(null);
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
 
   const objects = data?.objects || [];
   const hasNextPage = Boolean(data?.truncated && data?.cursor);
@@ -50,9 +52,13 @@ export const ConsolePage: React.FC = () => {
   };
 
   const handleDelete = (key: string) => {
-    if (window.confirm(`Tem certeza de que deseja excluir o arquivo "${key}"?`)) {
-      deleteMutation.mutate(key);
-    }
+    setFileToDelete(key);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!fileToDelete) return;
+    deleteMutation.mutate(fileToDelete);
+    setFileToDelete(null);
   };
 
   const handleBatchDelete = (keys: string[]) => {
@@ -99,6 +105,19 @@ export const ConsolePage: React.FC = () => {
         file={signedFile}
         open={Boolean(signedFile)}
         onOpenChange={(open) => !open && setSignedFile(null)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(fileToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setFileToDelete(null);
+        }}
+        title="Excluir Arquivo"
+        description={`Tem certeza de que deseja excluir o arquivo "${fileToDelete}"?`}
+        confirmText="Excluir"
+        cancelText={t.common.cancel}
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
       />
     </PageLayout>
   );

@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogBody,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -60,8 +61,8 @@ export const FilePreviewDialog: React.FC<FilePreviewDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl p-0 gap-0 max-h-[85vh] flex flex-col overflow-hidden">
-        <DialogHeader className="p-6 pb-4 border-b border-border/60 shrink-0">
+      <DialogContent size="xl" className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b px-6 py-4">
           <div className="flex items-center gap-2">
             <Badge
               variant="outline"
@@ -84,7 +85,7 @@ export const FilePreviewDialog: React.FC<FilePreviewDialogProps> = ({
         </DialogHeader>
 
         {/* Conteúdo com Scroll */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <DialogBody className="p-6 space-y-4">
           {/* Pré-visualização do Arquivo */}
           <div className="min-h-[220px] max-h-[380px] w-full rounded-lg bg-muted/40 border border-border/80 flex items-center justify-center overflow-hidden">
             {isImage ? (
@@ -134,9 +135,9 @@ export const FilePreviewDialog: React.FC<FilePreviewDialogProps> = ({
               <span>{t.common.copy}</span>
             </Button>
           </div>
-        </div>
+        </DialogBody>
 
-        <DialogFooter className="p-4 sm:p-6 sm:py-4 border-t border-border/60 bg-muted/30 shrink-0 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2">
+        <DialogFooter variant="default" className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
             {file.isPrivate && (
               <Button

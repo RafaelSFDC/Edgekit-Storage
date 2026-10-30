@@ -166,8 +166,11 @@ export interface Translations {
     payloadPreview: string;
     responsePreview: string;
     quickStatsWebhooks: string;
+    quickStatsWebhooksDesc: string;
     quickStatsDeliveries: string;
+    quickStatsDeliveriesDesc: string;
     quickStatsSuccessRate: string;
+    quickStatsSuccessRateDesc: string;
     integrationGuide: string;
   };
 }

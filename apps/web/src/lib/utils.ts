@@ -1,4 +1,15 @@
-export { cn } from 'cn';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+/**
+ * Util padrão shadcn (fonte única).
+ * Todo `src/` — inclusive `components/ui/*` — deve importar daqui,
+ * nunca do pacote `cn` direto, para que customizações de merge
+ * se propaguem para o layout inteiro.
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 export function formatTime(timestamp: number | string | Date): string {
   const date = new Date(timestamp);

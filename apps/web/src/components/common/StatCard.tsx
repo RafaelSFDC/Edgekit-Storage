@@ -34,7 +34,7 @@ export const StatCard: React.FC<StatCardProps> = ({
     if (!icon) return null;
 
     // Se for um componente LucideIcon (função ou forwardRef)
-    if (typeof icon === 'function' || (typeof icon === 'object' && icon !== null && 'render' in (icon as Record<string, unknown>))) {
+    if (typeof icon === 'function' || (typeof icon === 'object' && icon !== null && 'render' in (icon as unknown as Record<string, unknown>))) {
       const IconComponent = icon as LucideIcon;
       return <IconComponent className={cn('size-4', iconClassName)} />;
     }

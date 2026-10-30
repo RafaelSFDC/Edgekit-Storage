@@ -37,6 +37,7 @@ import {
 } from '../hooks/api/use-webhooks';
 import { WebhookFormDialog } from '../components/webhooks/WebhookFormDialog';
 import { WebhookDeliveriesDialog } from '../components/webhooks/WebhookDeliveriesDialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { copyToClipboard, formatDate } from '../lib/utils';
 import type { Webhook, CreateWebhookPayload, UpdateWebhookPayload } from '../types';
 import { toast } from 'sonner';
@@ -47,6 +48,7 @@ export const WebhooksPage: React.FC = () => {
   const [editingWebhook, setEditingWebhook] = useState<Webhook | null>(null);
   const [selectedWebhookForDeliveries, setSelectedWebhookForDeliveries] = useState<Webhook | null>(null);
   const [deliveriesOpen, setDeliveriesOpen] = useState(false);
+  const [webhookToDelete, setWebhookToDelete] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const { data: webhooks = [], isLoading, refetch, isRefetching } = useWebhooksQuery();
@@ -92,13 +94,19 @@ export const WebhooksPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm(t.webhooks.deleteConfirm)) return;
+  const handleDelete = (id: string) => {
+    setWebhookToDelete(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!webhookToDelete) return;
     try {
-      await deleteMutation.mutateAsync(id);
+      await deleteMutation.mutateAsync(webhookToDelete);
       toast.success(t.common.success);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setWebhookToDelete(null);
     }
   };
 
@@ -436,6 +444,19 @@ async def handle_webhook(request: Request, x_edgekit_signature: str = Header(Non
         webhook={selectedWebhookForDeliveries}
         open={deliveriesOpen}
         onOpenChange={setDeliveriesOpen}
+      />
+
+      <ConfirmDialog
+        open={Boolean(webhookToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setWebhookToDelete(null);
+        }}
+        title="Excluir Webhook"
+        description={t.webhooks.deleteConfirm}
+        confirmText="Excluir"
+        cancelText={t.common.cancel}
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

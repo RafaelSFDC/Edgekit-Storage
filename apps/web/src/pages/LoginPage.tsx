@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -127,10 +128,10 @@ export const LoginPage: React.FC = () => {
 
           <CardContent>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="apiKey" className="text-xs font-medium text-foreground">
+              <Field data-invalid={Boolean(displayError)}>
+                <FieldLabel htmlFor="apiKey" className="text-xs font-medium text-foreground">
                   {t.login.passkeyLabel}
-                </Label>
+                </FieldLabel>
                 <div className="relative">
                   <Input
                     id="apiKey"
@@ -157,17 +158,12 @@ export const LoginPage: React.FC = () => {
                     {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
                   </Button>
                 </div>
-              </div>
-
-              {/* Mensagem de Erro */}
-              {displayError && (
-                <Alert variant="destructive" className="flex items-start gap-2 p-3 text-xs">
-                  <AlertCircle className="size-4 mt-0.5 shrink-0" />
-                  <AlertDescription className="font-medium text-inherit">
+                {displayError && (
+                  <FieldError className="mt-1">
                     {displayError}
-                  </AlertDescription>
-                </Alert>
-              )}
+                  </FieldError>
+                )}
+              </Field>
 
               {/* Botão de Envio */}
               <Button

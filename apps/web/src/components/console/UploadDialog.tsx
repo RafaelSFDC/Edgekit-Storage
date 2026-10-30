@@ -14,11 +14,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogBody,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FieldGroup, Field, FieldLabel, FieldContent, FieldDescription } from '@/components/ui/field';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useUploadMutation } from '../../hooks/api/use-upload';
 import { useI18n } from '../../i18n/context';
@@ -143,8 +145,8 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
         }
       }}
     >
-      <DialogContent className="sm:max-w-lg p-0 gap-0 max-h-[85vh] flex flex-col overflow-hidden">
-        <DialogHeader className="p-6 pb-4 border-b border-border/60 shrink-0">
+      <DialogContent size="lg" className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b px-6 py-4">
           <DialogTitle>{t.uploadModal.title}</DialogTitle>
           <DialogDescription>
             Envie arquivos diretamente para o seu bucket Cloudflare R2 com CDN global.
@@ -152,7 +154,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <DialogBody className="p-6 space-y-4">
             {/* Zona de Drop */}
             <div
               onDragOver={(e) => {
@@ -230,64 +232,70 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
               </div>
             )}
 
-            {/* Pasta de Destino */}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="folder" className="text-xs">
-                {t.uploadModal.folderLabel}
-              </Label>
-              <Input
-                id="folder"
-                value={folder}
-                onChange={(e) => setFolder(e.target.value)}
-                placeholder={t.uploadModal.folderPlaceholder}
-              />
-            </div>
-
-            {/* Nome Customizado (Apenas se houver 1 único arquivo) */}
-            {selectedFiles.length <= 1 && (
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="customName" className="text-xs">
-                  Nome personalizado (opcional)
-                </Label>
+            <FieldGroup>
+              {/* Pasta de Destino */}
+              <Field>
+                <FieldLabel htmlFor="folder" className="text-xs">
+                  {t.uploadModal.folderLabel}
+                </FieldLabel>
                 <Input
-                  id="customName"
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  placeholder="ex: perfil-usuario"
+                  id="folder"
+                  value={folder}
+                  onChange={(e) => setFolder(e.target.value)}
+                  placeholder={t.uploadModal.folderPlaceholder}
                 />
+              </Field>
+
+              {/* Nome Customizado (Apenas se houver 1 único arquivo) */}
+              {selectedFiles.length <= 1 && (
+                <Field>
+                  <FieldLabel htmlFor="customName" className="text-xs">
+                    Nome personalizado (opcional)
+                  </FieldLabel>
+                  <Input
+                    id="customName"
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                    placeholder="ex: perfil-usuario"
+                  />
+                </Field>
+              )}
+
+              {/* Flags: Privado e Manter Nome */}
+              <div className="flex flex-col gap-3 pt-2 border-t border-border/60">
+                <Field orientation="horizontal">
+                  <Checkbox
+                    id="private-upload-checkbox"
+                    checked={isPrivate}
+                    onCheckedChange={(checked) => setIsPrivate(!!checked)}
+                    className="mt-0.5"
+                  />
+                  <FieldContent>
+                    <FieldLabel htmlFor="private-upload-checkbox" className="text-xs font-medium text-foreground flex items-center gap-1.5 cursor-pointer">
+                      <Lock className="size-3 text-amber-500" />
+                      {t.uploadModal.privateLabel}
+                    </FieldLabel>
+                    <FieldDescription className="text-[11px] leading-tight mt-0.5">
+                      {t.uploadModal.privateHelp}
+                    </FieldDescription>
+                  </FieldContent>
+                </Field>
+
+                <Field orientation="horizontal">
+                  <Checkbox
+                    id="preserve-name-checkbox"
+                    checked={preserveName}
+                    onCheckedChange={(checked) => setPreserveName(!!checked)}
+                  />
+                  <FieldLabel htmlFor="preserve-name-checkbox" className="text-xs text-foreground cursor-pointer">
+                    {t.uploadModal.preserveNameLabel}
+                  </FieldLabel>
+                </Field>
               </div>
-            )}
+            </FieldGroup>
+          </DialogBody>
 
-            {/* Flags: Privado e Manter Nome */}
-            <div className="flex flex-col gap-2.5 pt-1 border-t border-border/60">
-              <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                <Checkbox
-                  checked={isPrivate}
-                  onCheckedChange={(checked) => setIsPrivate(!!checked)}
-                  className="mt-0.5"
-                />
-                <div className="flex flex-col">
-                  <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                    <Lock className="size-3 text-amber-500" />
-                    {t.uploadModal.privateLabel}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-                    {t.uploadModal.privateHelp}
-                  </span>
-                </div>
-              </label>
-
-              <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                <Checkbox
-                  checked={preserveName}
-                  onCheckedChange={(checked) => setPreserveName(!!checked)}
-                />
-                <span className="text-xs text-foreground">{t.uploadModal.preserveNameLabel}</span>
-              </label>
-            </div>
-          </div>
-
-          <DialogFooter className="p-4 sm:p-6 sm:py-4 border-t border-border/60 bg-muted/30 shrink-0">
+          <DialogFooter variant="default">
             <Button
               type="button"
               variant="outline"

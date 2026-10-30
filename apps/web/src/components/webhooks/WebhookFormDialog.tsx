@@ -16,11 +16,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogBody,
   DialogFooter,
+  DialogMedia,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FieldGroup, Field, FieldLabel, FieldDescription } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useI18n } from '../../i18n/context';
@@ -163,12 +166,12 @@ export const WebhookFormDialog: React.FC<WebhookFormDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl p-0 gap-0 max-h-[85vh] flex flex-col overflow-hidden">
-        <DialogHeader className="p-6 pb-4 border-b border-border/60 shrink-0">
+      <DialogContent size="xl" className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
+            <DialogMedia className="mb-0">
               <WebhookIcon className="size-4" />
-            </div>
+            </DialogMedia>
             <div>
               <DialogTitle>
                 {isEditing ? t.webhooks.editWebhook : t.webhooks.addWebhook}
@@ -181,149 +184,150 @@ export const WebhookFormDialog: React.FC<WebhookFormDialogProps> = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {/* Friendly Name */}
-          <div className="space-y-1.5">
-            <Label htmlFor="webhook-name" className="text-xs font-medium flex items-center gap-1.5">
-              <Tag className="size-3.5 text-muted-foreground" />
-              {t.webhooks.nameLabel}
-            </Label>
-            <Input
-              id="webhook-name"
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t.webhooks.namePlaceholder}
-              className="h-9 text-xs"
-            />
-          </div>
-
-          {/* Endpoint URL */}
-          <div className="space-y-1.5">
-            <Label htmlFor="webhook-url" className="text-xs font-medium flex items-center gap-1.5">
-              <Globe className="size-3.5 text-muted-foreground" />
-              {t.webhooks.urlLabel}
-            </Label>
-            <Input
-              id="webhook-url"
-              type="url"
-              required
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder={t.webhooks.urlPlaceholder}
-              className="h-9 text-xs font-mono"
-            />
-          </div>
-
-          {/* Secret Signing Key */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="webhook-secret" className="text-xs font-medium flex items-center gap-1.5">
-                <Key className="size-3.5 text-muted-foreground" />
-                {t.webhooks.secretLabel}
-              </Label>
-              <button
-                type="button"
-                onClick={handleRegenerateSecret}
-                className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer"
-              >
-                <RefreshCw className="size-3" />
-                {t.webhooks.generateSecret}
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <Input
-                id="webhook-secret"
-                type="text"
-                required
-                value={secret}
-                onChange={(e) => setSecret(e.target.value)}
-                className="h-9 text-xs font-mono bg-muted/30"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9 px-3 shrink-0"
-                onClick={handleCopySecret}
-              >
-                {copiedSecret ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
-              </Button>
-            </div>
-          </div>
-
-          {/* Subscribed Events */}
-          <div className="space-y-2">
-            <Label className="text-xs font-medium">
-              {t.webhooks.eventsLabel}
-            </Label>
-            <div className="rounded-lg border border-border/70 p-3 bg-muted/20 space-y-2">
-              {/* Wildcard * */}
-              <label className="flex items-center justify-between cursor-pointer py-1 text-xs font-medium text-foreground">
-                <span>{t.webhooks.allEvents}</span>
-                <Checkbox
-                  checked={selectedEvents.includes('*')}
-                  onCheckedChange={handleToggleAllEvents}
+          <DialogBody className="p-6 space-y-4">
+            <FieldGroup>
+              {/* Friendly Name */}
+              <Field>
+                <FieldLabel htmlFor="webhook-name" className="text-xs font-medium flex items-center gap-1.5">
+                  <Tag className="size-3.5 text-muted-foreground" />
+                  {t.webhooks.nameLabel}
+                </FieldLabel>
+                <Input
+                  id="webhook-name"
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t.webhooks.namePlaceholder}
+                  className="h-9 text-xs"
                 />
-              </label>
+              </Field>
 
-              <div className="border-t border-border/40 my-1 pt-1 space-y-1.5">
-                {AVAILABLE_EVENTS.map((event) => {
-                  const isChecked = selectedEvents.includes('*') || selectedEvents.includes(event.id);
-                  return (
-                    <label
-                      key={event.id}
-                      className="flex items-center justify-between cursor-pointer py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <span className="font-mono text-[11px]">{t.webhooks[event.labelKey]}</span>
-                      <Checkbox
-                        checked={isChecked}
-                        disabled={selectedEvents.includes('*')}
-                        onCheckedChange={() => handleToggleEvent(event.id)}
-                      />
-                    </label>
-                  );
-                })}
+              {/* Endpoint URL */}
+              <Field>
+                <FieldLabel htmlFor="webhook-url" className="text-xs font-medium flex items-center gap-1.5">
+                  <Globe className="size-3.5 text-muted-foreground" />
+                  {t.webhooks.urlLabel}
+                </FieldLabel>
+                <Input
+                  id="webhook-url"
+                  type="url"
+                  required
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder={t.webhooks.urlPlaceholder}
+                  className="h-9 text-xs font-mono"
+                />
+              </Field>
+
+              {/* Secret Signing Key */}
+              <Field>
+                <div className="flex items-center justify-between">
+                  <FieldLabel htmlFor="webhook-secret" className="text-xs font-medium flex items-center gap-1.5">
+                    <Key className="size-3.5 text-muted-foreground" />
+                    {t.webhooks.secretLabel}
+                  </FieldLabel>
+                  <button
+                    type="button"
+                    onClick={handleRegenerateSecret}
+                    className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <RefreshCw className="size-3" />
+                    {t.webhooks.generateSecret}
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="webhook-secret"
+                    type="text"
+                    required
+                    value={secret}
+                    onChange={(e) => setSecret(e.target.value)}
+                    className="h-9 text-xs font-mono bg-muted/30"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-3 shrink-0"
+                    onClick={handleCopySecret}
+                  >
+                    {copiedSecret ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
+                  </Button>
+                </div>
+              </Field>
+
+              {/* Subscribed Events */}
+              <Field>
+                <FieldLabel className="text-xs font-medium">
+                  {t.webhooks.eventsLabel}
+                </FieldLabel>
+                <div className="rounded-lg border border-border/70 p-3 bg-muted/20 space-y-2">
+                  {/* Wildcard * */}
+                  <label className="flex items-center justify-between cursor-pointer py-1 text-xs font-medium text-foreground">
+                    <span>{t.webhooks.allEvents}</span>
+                    <Checkbox
+                      checked={selectedEvents.includes('*')}
+                      onCheckedChange={handleToggleAllEvents}
+                    />
+                  </label>
+
+                  <div className="border-t border-border/40 my-1 pt-1 space-y-1.5">
+                    {AVAILABLE_EVENTS.map((event) => {
+                      const isChecked = selectedEvents.includes('*') || selectedEvents.includes(event.id);
+                      return (
+                        <label
+                          key={event.id}
+                          className="flex items-center justify-between cursor-pointer py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <span className="font-mono text-[11px]">{t.webhooks[event.labelKey]}</span>
+                          <Checkbox
+                            checked={isChecked}
+                            disabled={selectedEvents.includes('*')}
+                            onCheckedChange={() => handleToggleEvent(event.id)}
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </Field>
+
+              {/* Folder Prefix Filter */}
+              <Field>
+                <FieldLabel htmlFor="webhook-prefix" className="text-xs font-medium flex items-center gap-1.5">
+                  <FolderTree className="size-3.5 text-muted-foreground" />
+                  {t.webhooks.prefixLabel}
+                </FieldLabel>
+                <Input
+                  id="webhook-prefix"
+                  type="text"
+                  value={filterPrefix}
+                  onChange={(e) => setFilterPrefix(e.target.value)}
+                  placeholder={t.webhooks.prefixPlaceholder}
+                  className="h-9 text-xs font-mono"
+                />
+                <FieldDescription className="text-[11px]">
+                  {t.webhooks.prefixHelp}
+                </FieldDescription>
+              </Field>
+
+              {/* Active Switch */}
+              <div className="flex items-center justify-between rounded-lg border border-border/70 p-3 bg-muted/20">
+                <div className="space-y-0.5">
+                  <FieldLabel htmlFor="webhook-active" className="text-xs font-medium text-foreground cursor-pointer">
+                    {t.webhooks.activeLabel}
+                  </FieldLabel>
+                  <FieldDescription className="text-[11px]">
+                    {isActive ? t.common.active : 'Pausado'}
+                  </FieldDescription>
+                </div>
+                <Switch id="webhook-active" checked={isActive} onCheckedChange={setIsActive} />
               </div>
-            </div>
-          </div>
+            </FieldGroup>
+          </DialogBody>
 
-          {/* Folder Prefix Filter */}
-          <div className="space-y-1.5">
-            <Label htmlFor="webhook-prefix" className="text-xs font-medium flex items-center gap-1.5">
-              <FolderTree className="size-3.5 text-muted-foreground" />
-              {t.webhooks.prefixLabel}
-            </Label>
-            <Input
-              id="webhook-prefix"
-              type="text"
-              value={filterPrefix}
-              onChange={(e) => setFilterPrefix(e.target.value)}
-              placeholder={t.webhooks.prefixPlaceholder}
-              className="h-9 text-xs font-mono"
-            />
-            <p className="text-[11px] text-muted-foreground">
-              {t.webhooks.prefixHelp}
-            </p>
-          </div>
-
-          {/* Active Switch */}
-          <div className="flex items-center justify-between rounded-lg border border-border/70 p-3 bg-muted/20">
-            <div className="space-y-0.5">
-              <Label className="text-xs font-medium text-foreground cursor-pointer">
-                {t.webhooks.activeLabel}
-              </Label>
-              <p className="text-[11px] text-muted-foreground">
-                {isActive ? t.common.active : 'Pausado'}
-              </p>
-            </div>
-            <Switch checked={isActive} onCheckedChange={setIsActive} />
-          </div>
-
-          </div>
-
-          <DialogFooter className="p-4 sm:p-6 sm:py-4 border-t border-border/60 bg-muted/30 shrink-0">
+          <DialogFooter variant="default">
             <Button
               type="button"
               variant="outline"
