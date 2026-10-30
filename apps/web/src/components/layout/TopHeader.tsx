@@ -5,15 +5,12 @@ import {
   Moon,
   LogOut,
   User,
-  HardDrive,
 } from 'lucide-react';
 import { EdgekitLogo } from '../common/EdgekitLogo';
 import { useI18n } from '../../i18n/context';
 import { useTheme } from '../../theme/context';
 import { useAuth } from '../../context/auth-context';
-import { useHealthQuery } from '../../hooks/api/use-stats';
 import { useSidebar, SidebarTrigger } from '@/components/ui/sidebar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -40,9 +37,6 @@ export const TopHeader: React.FC = () => {
   const { resolvedTheme, toggleTheme } = useTheme();
   const { logout } = useAuth();
   const { state } = useSidebar();
-  const { data: health, isError } = useHealthQuery();
-
-  const isConnected = !isError;
 
   // Rota ativa para os breadcrumbs integrados no header
   const routerState = useRouterState();
@@ -74,17 +68,14 @@ export const TopHeader: React.FC = () => {
         )}
       >
         <Link to="/" className="flex items-center gap-2 overflow-hidden outline-hidden">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-500 shadow-xs">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20 text-primary shadow-xs">
             <EdgekitLogo size={20} module="storage" />
           </div>
 
           {state !== 'collapsed' && (
             <div className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
               <span className="font-bold tracking-tight text-foreground text-sm">Edgekit</span>
-              <span className="font-semibold text-sky-500 text-sm">Storage</span>
-              <span className="ml-1 rounded px-1.5 py-0.2 text-[10px] font-mono font-medium bg-muted text-muted-foreground border border-border">
-                r2
-              </span>
+              <span className="font-semibold text-primary text-sm">Storage</span>
             </div>
           )}
         </Link>
@@ -124,31 +115,8 @@ export const TopHeader: React.FC = () => {
           </Breadcrumb>
         </div>
 
-        {/* Direita: Status do Storage + Avatar do Usuário */}
+        {/* Direita: Avatar e Menu do Usuário */}
         <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
-          <Badge
-            variant="outline"
-            className={cn(
-              'flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-medium transition-colors select-none',
-              isConnected
-                ? 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
-                : 'border-destructive/30 text-destructive bg-destructive/10'
-            )}
-          >
-            <span
-              className={cn(
-                'size-1.5 rounded-full shrink-0',
-                isConnected ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-destructive'
-              )}
-            />
-            <span>
-              {isConnected
-                ? (locale === 'pt-BR' ? 'Cluster R2 Ativo' : 'R2 Cluster Ready')
-                : (locale === 'pt-BR' ? 'Erro no Cluster' : 'Cluster Offline')}
-            </span>
-          </Badge>
-
-          {/* Avatar e Menu do Usuário */}
           <DropdownMenu>
             <DropdownMenuTrigger
               render={

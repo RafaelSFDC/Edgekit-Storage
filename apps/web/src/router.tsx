@@ -26,7 +26,7 @@ const DashboardGuard: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex min-h-svh w-full flex-col items-center justify-center bg-background text-foreground gap-3">
-        <div className="flex size-12 items-center justify-center rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-500 animate-pulse">
+        <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary animate-pulse">
           <EdgekitLogo size={28} module="storage" />
         </div>
         <p className="text-xs text-muted-foreground animate-pulse">Carregando...</p>
