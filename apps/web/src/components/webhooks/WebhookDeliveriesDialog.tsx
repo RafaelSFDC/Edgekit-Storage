@@ -4,7 +4,6 @@ import {
   RotateCw,
   CheckCircle2,
   XCircle,
-  Clock,
   ChevronDown,
   ChevronRight,
   Copy,
@@ -146,21 +145,20 @@ export const WebhookDeliveriesDialog: React.FC<WebhookDeliveriesDialogProps> = (
                   className="rounded-lg border border-border/70 bg-card overflow-hidden text-xs transition-colors"
                 >
                   {/* Delivery Row Header */}
-                  <div
-                    onClick={() => toggleExpand(delivery.id)}
-                    className="p-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-muted/40 transition-colors select-none"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground shrink-0"
-                      >
+                  <div className="w-full p-3 flex items-center justify-between gap-3 select-none">
+                    <button
+                      type="button"
+                      aria-label="Toggle delivery details"
+                      onClick={() => toggleExpand(delivery.id)}
+                      className="flex items-center gap-2.5 min-w-0 flex-1 text-left cursor-pointer hover:opacity-80"
+                    >
+                      <span className="text-muted-foreground shrink-0">
                         {isExpanded ? (
                           <ChevronDown className="size-3.5" />
                         ) : (
                           <ChevronRight className="size-3.5" />
                         )}
-                      </button>
+                      </span>
 
                       <Badge
                         variant="outline"
@@ -181,7 +179,7 @@ export const WebhookDeliveriesDialog: React.FC<WebhookDeliveriesDialogProps> = (
                       <span className="font-mono text-xs font-semibold text-foreground truncate">
                         {delivery.eventType}
                       </span>
-                    </div>
+                    </button>
 
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="text-[11px] text-muted-foreground font-mono">
@@ -193,10 +191,7 @@ export const WebhookDeliveriesDialog: React.FC<WebhookDeliveriesDialogProps> = (
                       <Button
                         variant="ghost"
                         size="xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRetry(delivery);
-                        }}
+                        onClick={() => handleRetry(delivery)}
                         disabled={retryMutation.isPending}
                         className="h-7 px-2 gap-1 text-[11px]"
                       >

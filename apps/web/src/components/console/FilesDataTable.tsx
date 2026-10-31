@@ -4,10 +4,8 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  getFilteredRowModel,
   flexRender,
   type SortingState,
-  type ColumnFiltersState,
   type RowSelectionState,
 } from '@tanstack/react-table';
 import {
@@ -15,19 +13,14 @@ import {
   Trash2,
   Upload,
   RefreshCw,
-  FolderOpen,
-  Filter,
-  CheckSquare,
-  Square,
   HardDrive,
-  AlertCircle,
+  CheckSquare,
 } from 'lucide-react';
 import type { StorageObject } from '../../types';
 import { filesColumns, type FilesTableMeta } from './files-columns';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectTrigger,

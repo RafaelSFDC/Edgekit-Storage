@@ -2,13 +2,10 @@ import React from 'react';
 import {
   ExternalLink,
   Copy,
-  Download,
   Lock,
   Globe,
   KeyRound,
   FileText,
-  FileVideo,
-  FileAudio,
   File,
 } from 'lucide-react';
 import {

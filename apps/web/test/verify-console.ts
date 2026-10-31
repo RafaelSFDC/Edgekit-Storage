@@ -1,8 +1,6 @@
 import assert from 'node:assert';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '../src/lib/query-client';
 import {
   Select,
   SelectTrigger,
@@ -11,8 +9,6 @@ import {
   SelectItem,
 } from '../src/components/ui/select';
 import { FilesDataTable } from '../src/components/console/FilesDataTable';
-import { FilePreviewDialog } from '../src/components/console/FilePreviewDialog';
-import { SignedUrlDialog } from '../src/components/console/SignedUrlDialog';
 import { SnippetGenerator } from '../src/components/snippets/SnippetGenerator';
 import { I18nProvider } from '../src/i18n/context';
 import type { StorageObject } from '../src/types';

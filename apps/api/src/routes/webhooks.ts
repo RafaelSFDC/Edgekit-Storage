@@ -149,7 +149,7 @@ webhooksRouter.post('/', async (c) => {
     ? events.map((e) => String(e).trim()).filter(Boolean)
     : ['*'];
 
-  const webhookId = 'wh_' + crypto.randomUUID().replace(/-/g, '').slice(0, 18);
+  const webhookId = `wh_${crypto.randomUUID().replace(/-/g, '').slice(0, 18)}`;
   const webhookSecret = typeof secret === 'string' && secret.trim() ? secret.trim() : generateWebhookSecret();
   const nowIso = new Date().toISOString();
   const cleanPrefix = typeof filterPrefix === 'string' && filterPrefix.trim() ? filterPrefix.trim().replace(/^\/+/, '') : null;
@@ -399,7 +399,7 @@ webhooksRouter.post('/:id/test', async (c) => {
       return apiError(c, 'Webhook not found', 404);
     }
 
-    const eventId = 'evt_test_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+    const eventId = `evt_test_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
     const testData = {
       message: 'EdgeKit Storage webhook test ping',
       webhookId: webhook.id,

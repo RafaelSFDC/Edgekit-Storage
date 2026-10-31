@@ -13,7 +13,6 @@ import {
   Globe,
   Copy,
   ExternalLink,
-  Download,
   Trash2,
   KeyRound,
   Eye,
@@ -108,7 +107,9 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
       return (
         <div className="flex items-center gap-3 min-w-0 max-w-[280px] sm:max-w-[340px] py-1">
           {/* Miniatura ou Ícone */}
-          <div
+          <button
+            type="button"
+            aria-label={`Visualizar ${filename}`}
             className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 border border-border/70 overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
             onClick={() => meta?.onPreview?.(file)}
           >
@@ -125,16 +126,17 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
             ) : (
               getFileIcon(file.mimeType)
             )}
-          </div>
+          </button>
 
           <div className="flex flex-col min-w-0 overflow-hidden">
-            <span
-              className="font-medium text-xs text-foreground truncate cursor-pointer hover:text-primary transition-colors"
+            <button
+              type="button"
+              className="text-left font-medium text-xs text-foreground truncate cursor-pointer hover:text-primary transition-colors"
               title={file.key}
               onClick={() => meta?.onPreview?.(file)}
             >
               {filename}
-            </span>
+            </button>
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono truncate">
               {folder && (
                 <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground border border-border/60">

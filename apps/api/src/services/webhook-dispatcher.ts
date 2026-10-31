@@ -105,7 +105,7 @@ export function isSafeWebhookUrl(rawUrl: string): boolean {
 export function generateWebhookSecret(): string {
   const bytes = new Uint8Array(24);
   crypto.getRandomValues(bytes);
-  return 'whsec_' + Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return `whsec_${Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')}`;
 }
 
 /**
@@ -255,7 +255,7 @@ export async function deliverWebhook({
   payloadData: Record<string, any>;
   attempt?: number;
 }): Promise<WebhookDeliveryRecord> {
-  const deliveryId = 'del_' + crypto.randomUUID().replace(/-/g, '').slice(0, 20);
+  const deliveryId = `del_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`;
   const timestamp = Math.floor(Date.now() / 1000);
   const nowIso = new Date().toISOString();
 
@@ -397,7 +397,7 @@ export function dispatchWebhookEvent<T extends Record<string, any>>(
     return; // Graceful fallback: D1 not configured
   }
 
-  const eventId = 'evt_' + crypto.randomUUID().replace(/-/g, '').slice(0, 20);
+  const eventId = `evt_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`;
   const targetKey = typeof data.key === 'string' ? data.key : undefined;
 
   // Enrich payload with client context if available
@@ -412,7 +412,7 @@ export function dispatchWebhookEvent<T extends Record<string, any>>(
   const enrichedData = {
     ...data,
     request: {
-      ...(data.request || {}),
+      ...data.request,
       ip: clientIp,
       userAgent,
       referer,

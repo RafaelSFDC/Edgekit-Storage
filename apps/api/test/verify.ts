@@ -169,7 +169,7 @@ async function runTests() {
 
   // 6.3 Rejeição de payload adulterado (tampered)
   const isTamperedPayload = await verifyWebhookSignature({
-    payload: payloadStr + 'tamper',
+    payload: `${payloadStr}tamper`,
     signatureHeader,
     secret: whSecret,
     toleranceSeconds: 300,

@@ -1,8 +1,5 @@
-import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import { router } from '../src/router';
-import { TestWrapper } from './helpers/test-wrapper';
 
 describe('Frontend DashboardGuard & Routing Suite', () => {
   it('has public /login route registered outside protected dashboard layout', () => {

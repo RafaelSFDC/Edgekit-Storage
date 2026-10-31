@@ -5,8 +5,6 @@ import {
   Lock,
   Loader2,
   X,
-  CheckCircle2,
-  Files,
 } from 'lucide-react';
 import {
   Dialog,
@@ -19,7 +17,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { FieldGroup, Field, FieldLabel, FieldContent, FieldDescription } from '@/components/ui/field';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useQueryClient } from '@tanstack/react-query';
@@ -168,7 +165,8 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
           <DialogBody className="p-6 space-y-4">
             {/* Zona de Drop */}
-            <div
+            <button
+              type="button"
               onDragOver={(e) => {
                 e.preventDefault();
                 setIsDragging(true);
@@ -176,7 +174,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
               onDragLeave={() => setIsDragging(false)}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`flex flex-col items-center justify-center p-5 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+              className={`w-full flex flex-col items-center justify-center p-5 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
                 isDragging
                   ? 'border-primary bg-primary/5'
                   : 'border-border/80 hover:border-primary/50 bg-muted/20'
@@ -200,7 +198,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
                   Suporta múltiplos arquivos, PDFs, imagens e documentos até 25MB
                 </p>
               </div>
-            </div>
+            </button>
 
             {/* Lista de Arquivos Selecionados */}
             {selectedFiles.length > 0 && (

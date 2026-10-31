@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import app from '../src/index';
 import { createMockEnv, createMockExecutionContext } from './helpers/mock-env';
 import {
@@ -200,7 +200,7 @@ describe('Backend Webhooks System Suite', () => {
 
     // Tampered payload
     const isTampered = await verifyWebhookSignature({
-      payload: payload + 'tampered',
+      payload: `${payload}tampered`,
       signatureHeader,
       secret,
     });

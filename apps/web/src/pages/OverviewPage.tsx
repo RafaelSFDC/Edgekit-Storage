@@ -6,13 +6,11 @@ import {
   ArrowRight,
   Database,
   Lock,
-  Globe,
   FolderTree,
-  Zap,
 } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { useI18n } from '../i18n/context';
-import { useStatsQuery, useHealthQuery } from '../hooks/api/use-stats';
+import { useStatsQuery } from '../hooks/api/use-stats';
 import { PageLayout } from '../components/layout/PageLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -25,7 +23,6 @@ import { formatBytes } from '../lib/utils';
 export const OverviewPage: React.FC = () => {
   const { t } = useI18n();
   const { data: stats, isLoading } = useStatsQuery();
-  const { data: health } = useHealthQuery();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
   return (

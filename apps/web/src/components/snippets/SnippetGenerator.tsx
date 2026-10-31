@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Copy, Check, Code2, Terminal } from 'lucide-react';
+import { Copy, Check, Code2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { copyToClipboard } from '../../lib/utils';
 import { toast } from 'sonner';
 

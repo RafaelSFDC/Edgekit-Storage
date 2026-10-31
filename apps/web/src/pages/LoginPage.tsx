@@ -4,7 +4,6 @@ import {
   KeyRound,
   Eye,
   EyeOff,
-  AlertCircle,
   Loader2,
   Globe,
   Sun,
@@ -22,10 +21,8 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const LoginPage: React.FC = () => {
   const { isAuthenticated, isLoading, login, isLoggingIn, error: authError } = useAuth();
@@ -143,7 +140,6 @@ export const LoginPage: React.FC = () => {
                     }}
                     placeholder={t.login.passkeyPlaceholder}
                     className="pr-10 font-mono text-sm"
-                    autoFocus
                     required
                     disabled={isLoggingIn}
                   />

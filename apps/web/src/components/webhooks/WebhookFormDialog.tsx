@@ -22,7 +22,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { FieldGroup, Field, FieldLabel, FieldDescription } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -42,7 +41,7 @@ interface WebhookFormDialogProps {
 function generateLocalSecret(): string {
   const bytes = new Uint8Array(20);
   crypto.getRandomValues(bytes);
-  return 'whsec_' + Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return `whsec_${Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')}`;
 }
 
 const AVAILABLE_EVENTS = [
@@ -138,12 +137,12 @@ export const WebhookFormDialog: React.FC<WebhookFormDialogProps> = ({
 
     const cleanUrl = url.trim();
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
-      toast.error(t.webhooks.urlLabel + ': HTTP / HTTPS required');
+      toast.error(`${t.webhooks.urlLabel}: HTTP / HTTPS required`);
       return;
     }
 
     if (!name.trim()) {
-      toast.error(t.webhooks.nameLabel + ' is required');
+      toast.error(`${t.webhooks.nameLabel} is required`);
       return;
     }
 

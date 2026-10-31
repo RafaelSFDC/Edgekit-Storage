@@ -7,16 +7,11 @@ import {
   History,
   Trash2,
   Edit2,
-  ExternalLink,
   Copy,
   Check,
   Globe,
   Tag,
-  Key,
   FolderTree,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
   ShieldCheck,
   Code2,
 } from 'lucide-react';
@@ -24,7 +19,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { StatCard } from '../components/common/StatCard';
 import { useI18n } from '../i18n/context';
@@ -38,7 +33,7 @@ import {
 import { WebhookFormDialog } from '../components/webhooks/WebhookFormDialog';
 import { WebhookDeliveriesDialog } from '../components/webhooks/WebhookDeliveriesDialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { copyToClipboard, formatDate } from '../lib/utils';
+import { copyToClipboard } from '../lib/utils';
 import type { Webhook, CreateWebhookPayload, UpdateWebhookPayload } from '../types';
 import { toast } from 'sonner';
 
@@ -277,7 +272,7 @@ export const WebhooksPage: React.FC = () => {
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                       <Switch
                         checked={wh.isActive}
-                        onCheckedChange={(checked) => handleToggleActive(wh, wh.isActive)}
+                        onCheckedChange={(_checked) => handleToggleActive(wh, wh.isActive)}
                         title={wh.isActive ? 'Desativar Webhook' : 'Ativar Webhook'}
                       />
 

@@ -1,10 +1,8 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   KeyRound,
   Copy,
-  Clock,
   Loader2,
-  CheckCircle2,
   ExternalLink,
 } from 'lucide-react';
 import {
@@ -19,7 +17,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Field, FieldLabel } from '@/components/ui/field';
 import {
   Select,
