@@ -7,9 +7,19 @@ export function useStatsQuery() {
   return useQuery({
     queryKey: queryKeys.stats.summary(),
     queryFn: async (): Promise<StorageStats> => {
-      // Fetch up to 100 files for local stats computation
-      const data = await fetchFiles({ limit: 100 });
-      const objects = data.objects || [];
+      // Fetch multiple batches (up to 500 files) for accurate stats calculation
+      let objects: any[] = [];
+      let cursor: string | null = null;
+      let truncated = true;
+      let iterations = 0;
+
+      while (truncated && iterations < 5) {
+        const data = await fetchFiles({ limit: 100, cursor });
+        objects = objects.concat(data.objects || []);
+        truncated = Boolean(data.truncated && data.cursor);
+        cursor = data.cursor || null;
+        iterations++;
+      }
 
       const totalFiles = objects.length;
       const totalBytes = objects.reduce((acc, curr) => acc + (curr.size || 0), 0);

@@ -291,5 +291,150 @@ describe('Rigorous Backend Audit & Extreme Edge Cases Suite', () => {
         expect(res.status).toBe(400);
       }
     });
+
+    it('POST /api/webhooks should reject IPv6 link-local and unique-local private addresses', async () => {
+      const env = createMockEnv();
+      const ctx = createMockExecutionContext();
+
+      const ipv6Private = [
+        'http://[fe80::1]/webhook',
+        'http://[fd00::1]/webhook',
+        'http://[::1]:8080/hook',
+      ];
+
+      for (const targetUrl of ipv6Private) {
+        const res = await app.fetch(
+          new Request('http://localhost/api/webhooks', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-Key': env.API_KEY,
+            },
+            body: JSON.stringify({
+              name: 'IPv6 SSRF Probe',
+              url: targetUrl,
+            }),
+          }),
+          env,
+          ctx
+        );
+
+        expect(res.status).toBe(400);
+      }
+    });
+  });
+
+  // =========================================================================
+  // 8. SECURITY HEADERS & SVG XSS DEFENSE
+  // =========================================================================
+  describe('SVG Stored XSS & MIME Security Headers', () => {
+    it('GET /f/:key serves SVG with Content-Security-Policy sandbox and X-Content-Type-Options: nosniff', async () => {
+      const env = createMockEnv();
+      const ctx = createMockExecutionContext();
+
+      const svgKey = 'images/vector-icon.svg';
+      const svgContent = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>';
+      await env.BUCKET.put(svgKey, new TextEncoder().encode(svgContent), {
+        httpMetadata: { contentType: 'image/svg+xml' },
+      });
+
+      const res = await app.fetch(new Request(`http://localhost/f/${svgKey}`), env, ctx);
+      expect(res.status).toBe(200);
+
+      expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+      expect(res.headers.get('content-security-policy')).toContain("default-src 'none'");
+      expect(res.headers.get('content-security-policy')).toContain('sandbox');
+    });
+
+    it('GET /private/:key also enforces CSP sandbox and nosniff for private SVG files', async () => {
+      const env = createMockEnv();
+      const ctx = createMockExecutionContext();
+
+      const svgKey = 'private/charts/q3.svg';
+      const svgContent = '<svg xmlns="http://www.w3.org/2000/svg"><circle r="10"/></svg>';
+      await env.BUCKET.put(svgKey, new TextEncoder().encode(svgContent), {
+        httpMetadata: { contentType: 'image/svg+xml' },
+      });
+
+      const res = await app.fetch(
+        new Request(`http://localhost/private/charts/q3.svg`, {
+          headers: { 'X-API-Key': env.API_KEY },
+        }),
+        env,
+        ctx
+      );
+      expect(res.status).toBe(200);
+      expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+      expect(res.headers.get('content-security-policy')).toContain('sandbox');
+    });
+  });
+
+  // =========================================================================
+  // 9. PAGINATION & BATCH LIMIT SAFEGUARDS
+  // =========================================================================
+  describe('Pagination & Batch Limit Safeguards', () => {
+    it('GET /api/files should safely handle negative or invalid limit parameters', async () => {
+      const env = createMockEnv();
+      const ctx = createMockExecutionContext();
+
+      const resNegative = await app.fetch(
+        new Request('http://localhost/api/files?limit=-10', {
+          headers: { 'X-API-Key': env.API_KEY },
+        }),
+        env,
+        ctx
+      );
+      expect(resNegative.status).toBe(200);
+
+      const resNaN = await app.fetch(
+        new Request('http://localhost/api/files?limit=invalid', {
+          headers: { 'X-API-Key': env.API_KEY },
+        }),
+        env,
+        ctx
+      );
+      expect(resNaN.status).toBe(200);
+    });
+
+    it('POST /api/files/batch-delete should reject batches exceeding 1000 keys with 400 Bad Request', async () => {
+      const env = createMockEnv();
+      const ctx = createMockExecutionContext();
+
+      const excessiveKeys = Array.from({ length: 1001 }, (_, i) => `file_${i}.png`);
+
+      const res = await app.fetch(
+        new Request('http://localhost/api/files/batch-delete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': env.API_KEY,
+          },
+          body: JSON.stringify({ keys: excessiveKeys }),
+        }),
+        env,
+        ctx
+      );
+
+      expect(res.status).toBe(400);
+      const json: any = await res.json();
+      expect(json.error.message).toContain('1000 keys');
+    });
+  });
+
+  // =========================================================================
+  // 10. HEALTH CHECK DEPENDENCY READINESS
+  // =========================================================================
+  describe('Health Check Readiness Probe', () => {
+    it('GET /health returns 200 and dependency statuses when healthy', async () => {
+      const env = createMockEnv();
+      const ctx = createMockExecutionContext();
+
+      const res = await app.fetch(new Request('http://localhost/health'), env, ctx);
+      expect(res.status).toBe(200);
+
+      const json: any = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.dependencies.r2).toBe('ok');
+    });
   });
 });

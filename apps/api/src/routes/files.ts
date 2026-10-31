@@ -59,11 +59,17 @@ filesRouter.get('/f/:key{.*}', async (c) => {
   object.writeHttpMetadata(headers);
   headers.set('etag', object.httpEtag);
   headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  headers.set('X-Content-Type-Options', 'nosniff');
 
   // Fallback content-type if missing or generic
   const resolvedMime = resolveMimeType(key, object.httpMetadata?.contentType);
   if (!headers.get('content-type') || headers.get('content-type') === 'application/octet-stream') {
     headers.set('content-type', resolvedMime);
+  }
+
+  // Prevent stored XSS when serving vector images or markup
+  if (resolvedMime === 'image/svg+xml' || resolvedMime === 'text/html' || resolvedMime === 'application/xhtml+xml') {
+    headers.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
   }
 
   // Support forced download via ?download=true or custom name ?filename=custom.pdf
@@ -73,7 +79,8 @@ filesRouter.get('/f/:key{.*}', async (c) => {
     const rawName = customFilename || object.customMetadata?.originalName || key.split('/').pop() || 'download';
     // Clean filename of quotes and unsafe characters
     const safeName = rawName.replace(/["\r\n]/g, '_');
-    headers.set('Content-Disposition', `attachment; filename="${encodeURIComponent(safeName)}"; filename*=UTF-8''${encodeURIComponent(safeName)}`);
+    const asciiFallback = safeName.replace(/[^\x20-\x7E]/g, '_').replace(/"/g, '\\"');
+    headers.set('Content-Disposition', `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(safeName)}`);
   }
 
   // Trigger file.downloaded webhook asynchronously via waitUntil
@@ -161,11 +168,17 @@ filesRouter.get(
     object.writeHttpMetadata(headers);
     headers.set('etag', object.httpEtag);
     headers.set('Cache-Control', 'private, no-cache, no-store');
+    headers.set('X-Content-Type-Options', 'nosniff');
 
     // Fallback content-type if missing or generic
     const resolvedMime = resolveMimeType(fullKey, object.httpMetadata?.contentType);
     if (!headers.get('content-type') || headers.get('content-type') === 'application/octet-stream') {
       headers.set('content-type', resolvedMime);
+    }
+
+    // Prevent stored XSS when serving vector images or markup
+    if (resolvedMime === 'image/svg+xml' || resolvedMime === 'text/html' || resolvedMime === 'application/xhtml+xml') {
+      headers.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
     }
 
     // Support forced download via ?download=true or custom name ?filename=custom.pdf
@@ -174,7 +187,8 @@ filesRouter.get(
     if (isDownload || customFilename) {
       const rawName = customFilename || object.customMetadata?.originalName || key.split('/').pop() || 'download';
       const safeName = rawName.replace(/["\r\n]/g, '_');
-      headers.set('Content-Disposition', `attachment; filename="${encodeURIComponent(safeName)}"; filename*=UTF-8''${encodeURIComponent(safeName)}`);
+      const asciiFallback = safeName.replace(/[^\x20-\x7E]/g, '_').replace(/"/g, '\\"');
+      headers.set('Content-Disposition', `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(safeName)}`);
     }
 
     // Trigger file.downloaded webhook asynchronously via waitUntil
@@ -201,7 +215,8 @@ filesRouter.get(
 // 3. LIST FILES: GET /api/files
 // ==========================================
 filesRouter.get('/api/files', apiKeyAuth(), async (c) => {
-  const limit = Math.min(Number(c.req.query('limit') || '20'), 100);
+  const rawLimit = parseInt(c.req.query('limit') || '20', 10);
+  const limit = isNaN(rawLimit) ? 20 : Math.max(1, Math.min(rawLimit, 100));
   const cursor = c.req.query('cursor');
   const prefix = c.req.query('prefix');
   const delimiter = c.req.query('delimiter');
@@ -314,6 +329,10 @@ filesRouter.post('/api/files/batch-delete', apiKeyAuth(), async (c) => {
   const validKeys = keys.filter((k) => typeof k === 'string' && k.trim() !== '');
   if (validKeys.length === 0) {
     return apiError(c, 'No valid file keys provided', 400);
+  }
+
+  if (validKeys.length > 1000) {
+    return apiError(c, 'Batch size exceeds maximum limit of 1000 keys', 400);
   }
 
   try {

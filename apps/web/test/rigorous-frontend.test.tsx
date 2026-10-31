@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { UploadDialog } from '../src/components/console/UploadDialog';
 import { SignedUrlDialog } from '../src/components/console/SignedUrlDialog';
 import { WebhookFormDialog } from '../src/components/webhooks/WebhookFormDialog';
+import { FilesDataTable } from '../src/components/console/FilesDataTable';
 import { TestWrapper } from './helpers/test-wrapper';
 import type { StorageObject } from '../src/types';
 
@@ -213,6 +214,65 @@ describe('Rigorous Frontend Audit & Error Recovery Suite', () => {
       await waitFor(() => {
         expect(submitBtn).not.toBeDisabled();
       });
+    });
+  });
+
+  // =========================================================================
+  // 3. TABLE SELECTION & ROW IDENTIFIER INTEGRITY (getRowId)
+  // =========================================================================
+  describe('FilesDataTable Selection Integrity (getRowId)', () => {
+    it('Preserves row selection by unique file key when search filter changes', async () => {
+      const mockBatchDelete = vi.fn();
+      const testFiles: StorageObject[] = [
+        {
+          key: 'documents/report-alpha.pdf',
+          size: 1024,
+          uploadedAt: '2026-10-30T12:00:00Z',
+          mimeType: 'application/pdf',
+          url: 'http://localhost/documents/report-alpha.pdf',
+          isPrivate: false,
+        },
+        {
+          key: 'images/photo-beta.png',
+          size: 2048,
+          uploadedAt: '2026-10-30T10:00:00Z',
+          mimeType: 'image/png',
+          url: 'http://localhost/images/photo-beta.png',
+          isPrivate: false,
+        },
+      ];
+
+      render(
+        <TestWrapper>
+          <FilesDataTable
+            data={testFiles}
+            isLoading={false}
+            onRefresh={vi.fn()}
+            onOpenUpload={vi.fn()}
+            onPreview={vi.fn()}
+            onGenerateSignedUrl={vi.fn()}
+            onDelete={vi.fn()}
+            onBatchDelete={mockBatchDelete}
+          />
+        </TestWrapper>
+      );
+
+      // Select first row (documents/report-alpha.pdf)
+      const checkboxes = screen.getAllByRole('checkbox', { name: /selecionar arquivo/i });
+      fireEvent.click(checkboxes[0]);
+
+      // Batch delete bar appears
+      expect(screen.getByText(/1 arquivo\(s\) selecionado\(s\)/i)).toBeInTheDocument();
+
+      // Open confirm dialog and confirm
+      const batchDeleteBtn = screen.getByRole('button', { name: /excluir selecionados/i });
+      fireEvent.click(batchDeleteBtn);
+
+      const confirmBtn = screen.getByRole('button', { name: /^excluir selecionados$/i });
+      fireEvent.click(confirmBtn);
+
+      // Verify that mockBatchDelete was called with the exact file key
+      expect(mockBatchDelete).toHaveBeenCalledWith(['documents/report-alpha.pdf']);
     });
   });
 });

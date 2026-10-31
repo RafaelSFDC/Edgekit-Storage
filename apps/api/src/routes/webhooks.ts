@@ -424,7 +424,8 @@ webhooksRouter.post('/:id/test', async (c) => {
 // ==========================================
 webhooksRouter.get('/:id/deliveries', async (c) => {
   const id = c.req.param('id');
-  const limit = Math.min(Number(c.req.query('limit') || '50'), 100);
+  const rawLimit = parseInt(c.req.query('limit') || '50', 10);
+  const limit = isNaN(rawLimit) ? 50 : Math.max(1, Math.min(rawLimit, 100));
   const db = c.env.DB!;
 
   try {

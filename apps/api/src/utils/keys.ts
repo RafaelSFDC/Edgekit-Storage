@@ -100,15 +100,15 @@ export function resolveFileUrl(
 }
 
 /**
- * Constant-time string comparison to prevent timing attacks.
+ * Constant-time string comparison to prevent timing attacks and length leakage.
  */
 export function timingSafeEqualStr(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  const maxLen = Math.max(a.length, b.length);
+  let mismatch = a.length ^ b.length;
+  for (let i = 0; i < maxLen; i++) {
+    const charA = i < a.length ? a.charCodeAt(i) : 0;
+    const charB = i < b.length ? b.charCodeAt(i) : 0;
+    mismatch |= charA ^ charB;
   }
   return mismatch === 0;
 }

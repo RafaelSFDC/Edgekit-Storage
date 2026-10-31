@@ -9,7 +9,7 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "test:vitest": "vitest run",
-    "test": "npx tsx test/verify-auth-routing.ts && npx tsx test/verify-query.ts && npx tsx test/verify-page-header.ts && npx tsx test/verify-console.ts"
+    "test": "vitest run && npx tsx test/verify-auth-routing.ts && npx tsx test/verify-query.ts && npx tsx test/verify-page-header.ts && npx tsx test/verify-console.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

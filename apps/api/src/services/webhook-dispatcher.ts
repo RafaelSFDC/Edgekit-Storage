@@ -61,7 +61,22 @@ export function isSafeWebhookUrl(rawUrl: string): boolean {
     }
 
     // Block cloud metadata services
-    if (hostname === '169.254.169.254' || hostname === 'metadata.google.internal') {
+    if (hostname === '169.254.169.254' || hostname === 'metadata.google.internal' || hostname === '[fd00:ec2::254]') {
+      return false;
+    }
+
+    // Block IPv6 loopback (::1), unspecified (::), link-local (fe80::/10), and unique local (fc00::/7)
+    if (
+      hostname === '[::]' ||
+      hostname === '[::1]' ||
+      hostname.startsWith('[::ffff:127.') ||
+      hostname.startsWith('[fe8') ||
+      hostname.startsWith('[fe9') ||
+      hostname.startsWith('[fea') ||
+      hostname.startsWith('[feb') ||
+      hostname.startsWith('[fc') ||
+      hostname.startsWith('[fd')
+    ) {
       return false;
     }
 
@@ -350,6 +365,22 @@ export async function deliverWebhook({
   }
 
   return deliveryRecord;
+}
+
+/**
+ * Prunes webhook delivery logs older than the specified retention window (default: 30 days).
+ */
+export async function pruneOldWebhookDeliveries(db: D1Database, daysToKeep = 30): Promise<number> {
+  try {
+    const res = await db
+      .prepare("DELETE FROM webhook_deliveries WHERE created_at < datetime('now', '-' || ? || ' days')")
+      .bind(daysToKeep)
+      .run();
+    return res.meta?.changes || 0;
+  } catch (err) {
+    console.error('[Webhook DB Error] Failed to prune old deliveries:', err);
+    return 0;
+  }
 }
 
 /**

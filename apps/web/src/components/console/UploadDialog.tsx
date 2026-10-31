@@ -22,7 +22,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FieldGroup, Field, FieldLabel, FieldContent, FieldDescription } from '@/components/ui/field';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useQueryClient } from '@tanstack/react-query';
 import { useUploadMutation } from '../../hooks/api/use-upload';
+import { queryKeys } from '../../hooks/api/query-keys';
+import { uploadFile } from '../../services/api';
 import { useI18n } from '../../i18n/context';
 import { formatBytes } from '../../lib/utils';
 import { toast } from 'sonner';
@@ -43,6 +46,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
 
+  const queryClient = useQueryClient();
   const uploadMutation = useUploadMutation();
 
   const resetForm = () => {
@@ -117,7 +121,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
         if (isPrivate) formData.append('private', 'true');
 
         try {
-          await uploadMutation.mutateAsync(formData);
+          await uploadFile(formData);
           successCount++;
         } catch {
           failCount++;
@@ -127,6 +131,8 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
       setUploadProgress(null);
       if (successCount > 0) {
         toast.success(`${successCount} arquivo(s) enviados com sucesso!`);
+        queryClient.invalidateQueries({ queryKey: queryKeys.files.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.stats.all });
       }
       if (failCount > 0) {
         toast.error(`Falha no envio de ${failCount} arquivo(s).`);

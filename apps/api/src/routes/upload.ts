@@ -351,25 +351,22 @@ uploadRouter.put('/presigned/:key{.*}', async (c) => {
   const maxMb = Number(c.env.MAX_FILE_SIZE_MB || '25');
   const maxBytes = maxMb * 1024 * 1024;
 
-  if (contentLengthHeader && Number(contentLengthHeader) > maxBytes) {
-    return apiError(
-      c,
-      `File size (${(Number(contentLengthHeader) / (1024 * 1024)).toFixed(2)} MB) exceeds maximum allowed limit of ${maxMb} MB`,
-      413
-    );
+  if (contentLengthHeader) {
+    const parsedLength = Number(contentLengthHeader);
+    if (parsedLength === 0) {
+      return apiError(c, 'Request body is empty (0 bytes received)', 400);
+    }
+    if (parsedLength > maxBytes) {
+      return apiError(
+        c,
+        `File size (${(parsedLength / (1024 * 1024)).toFixed(2)} MB) exceeds maximum allowed limit of ${maxMb} MB`,
+        413
+      );
+    }
   }
 
-  const rawBytes = await c.req.raw.arrayBuffer();
-  if (!rawBytes || rawBytes.byteLength === 0) {
+  if (!c.req.raw.body) {
     return apiError(c, 'Request body is empty (0 bytes received)', 400);
-  }
-
-  if (rawBytes.byteLength > maxBytes) {
-    return apiError(
-      c,
-      `File size (${(rawBytes.byteLength / (1024 * 1024)).toFixed(2)} MB) exceeds maximum allowed limit of ${maxMb} MB`,
-      413
-    );
   }
 
   const contentType = c.req.header('content-type') || 'application/octet-stream';
@@ -384,10 +381,25 @@ uploadRouter.put('/presigned/:key{.*}', async (c) => {
     );
   }
 
-  const uint8Payload = new Uint8Array(rawBytes);
+  let totalBytes = 0;
+  let exceededLimit = false;
+
+  const countStream = new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      totalBytes += chunk.byteLength;
+      if (totalBytes > maxBytes) {
+        exceededLimit = true;
+        controller.error(new Error('EXCEEDED_MAX_BYTES'));
+        return;
+      }
+      controller.enqueue(chunk);
+    },
+  });
+
+  const uploadStream = c.req.raw.body.pipeThrough(countStream);
 
   try {
-    await c.env.BUCKET.put(key, uint8Payload, {
+    const putResult = await c.env.BUCKET.put(key, uploadStream, {
       httpMetadata: {
         contentType: resolvedMime,
       },
@@ -398,9 +410,14 @@ uploadRouter.put('/presigned/:key{.*}', async (c) => {
       },
     });
 
+    if (totalBytes === 0) {
+      await c.env.BUCKET.delete(key);
+      return apiError(c, 'Request body is empty (0 bytes received)', 400);
+    }
+
     const isPrivate = key.startsWith('private/');
     const fileUrl = resolveFileUrl(key, c.req.url, c.env.PUBLIC_URL, isPrivate);
-    const size = rawBytes.byteLength;
+    const size = putResult?.size || totalBytes;
 
     // Trigger file.uploaded webhook asynchronously via waitUntil
     dispatchWebhookEvent(c, 'file.uploaded', {
@@ -426,7 +443,15 @@ uploadRouter.put('/presigned/:key{.*}', async (c) => {
       },
       201
     );
-  } catch (err) {
+  } catch (err: any) {
+    if (exceededLimit || err?.message?.includes('EXCEEDED_MAX_BYTES')) {
+      await c.env.BUCKET.delete(key).catch(() => {});
+      return apiError(
+        c,
+        `File size (${(totalBytes / (1024 * 1024)).toFixed(2)} MB) exceeds maximum allowed limit of ${maxMb} MB`,
+        413
+      );
+    }
     console.error(`[Presigned Upload Error] Failed storing key ${key}:`, err);
     return apiError(
       c,

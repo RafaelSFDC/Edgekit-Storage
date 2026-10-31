@@ -11,5 +11,7 @@ apps/*/.dev.vars
 .env
 .env.*
 *.log
+test-results/
+playwright-report/
 .DS_Store
 Thumbs.db

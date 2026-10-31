@@ -60,8 +60,8 @@ describe('Frontend Overview & Stats Architecture Suite', () => {
     });
   });
 
-  it('AUDIT: documents data integrity risk in useStatsQuery when bucket exceeds 100 files', async () => {
-    const mockedHundredObjects = Array.from({ length: 100 }, (_, i) => ({
+  it('correctly paginates and aggregates files across batches in useStatsQuery when bucket exceeds 100 files', async () => {
+    const page1Objects = Array.from({ length: 100 }, (_, i) => ({
       key: `folder${i % 5}/file_${i}.png`,
       size: 1000,
       uploadedAt: '2026-10-30T10:00:00.000Z',
@@ -70,8 +70,18 @@ describe('Frontend Overview & Stats Architecture Suite', () => {
       isPrivate: false,
     }));
 
+    const page2Objects = Array.from({ length: 50 }, (_, i) => ({
+      key: `folder${i % 5}/extra_${i}.png`,
+      size: 1000,
+      uploadedAt: '2026-10-30T10:00:00.000Z',
+      mimeType: 'image/png',
+      url: `http://localhost/f/extra_${i}.png`,
+      isPrivate: false,
+    }));
+
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url.includes('/api/files')) {
+        const isPage2 = url.includes('cursor=page-2');
         return Promise.resolve({
           ok: true,
           status: 200,
@@ -79,9 +89,9 @@ describe('Frontend Overview & Stats Architecture Suite', () => {
             Promise.resolve({
               success: true,
               data: {
-                objects: mockedHundredObjects,
-                truncated: true, // There are more files in R2!
-                cursor: 'next-page-token',
+                objects: isPage2 ? page2Objects : page1Objects,
+                truncated: !isPage2,
+                cursor: isPage2 ? null : 'page-2',
               },
             }),
         });
@@ -98,9 +108,9 @@ describe('Frontend Overview & Stats Architecture Suite', () => {
       </RouterTestWrapper>
     );
 
-    // useStatsQuery displays 100 files, completely ignoring truncated = true
+    // useStatsQuery paginates and aggregates all 150 files across batches
     await waitFor(() => {
-      const totalCards = screen.getAllByText('100');
+      const totalCards = screen.getAllByText('150');
       expect(totalCards.length).toBeGreaterThan(0);
     });
   });

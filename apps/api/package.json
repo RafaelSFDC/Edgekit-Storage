@@ -12,7 +12,7 @@
     "cf-typegen": "wrangler types",
     "typecheck": "tsc --noEmit",
     "test:vitest": "vitest run",
-    "test": "npx tsx test/verify.ts"
+    "test": "vitest run && npx tsx test/verify.ts"
   },
   "dependencies": {
     "@silvia-odwyer/photon": "^0.3.3",

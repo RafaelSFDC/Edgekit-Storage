@@ -157,6 +157,7 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
     },
     meta,
     enableRowSelection: true,
+    getRowId: (row) => row.key,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
