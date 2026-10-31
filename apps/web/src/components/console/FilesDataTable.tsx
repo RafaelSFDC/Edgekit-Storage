@@ -149,12 +149,22 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
     [onPreview, onGenerateSignedUrl, onDelete]
   );
 
+  const isServerPaginated = hasNextPage !== undefined || hasPrevPage !== undefined;
+
   const table = useReactTable({
     data: filteredData,
     columns: filesColumns,
     state: {
       sorting,
       rowSelection,
+      ...(isServerPaginated
+        ? {
+            pagination: {
+              pageIndex,
+              pageSize: 50,
+            },
+          }
+        : {}),
     },
     meta,
     enableRowSelection: true,
@@ -164,9 +174,11 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    manualPagination: isServerPaginated,
+    pageCount: isServerPaginated ? (hasNextPage ? pageIndex + 2 : pageIndex + 1) : undefined,
     initialState: {
       pagination: {
-        pageSize: 15,
+        pageSize: 50,
       },
     },
   });
@@ -330,49 +342,19 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
         </Table>
       </div>
 
-      {/* 4. Paginação (Local e Remota via Cursor R2) */}
+      {/* 4. Paginação Unificada (TanStack Table + TanStack Query) */}
       <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground gap-3 px-1">
         <div>
-          {hasNextPage !== undefined || hasPrevPage !== undefined ? (
-            <span>
-              Lote R2 (Página {pageIndex + 1}) • {data.length} arquivo(s) neste lote
-            </span>
-          ) : (
-            <span>
-              {filteredData.length} arquivo(s)
-            </span>
-          )}
+          <span>
+            {isServerPaginated
+              ? `Página ${pageIndex + 1} • ${filteredData.length} arquivo(s)`
+              : `${filteredData.length} arquivo(s)`}
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
-          {table.getPageCount() > 1 && (
-            <div className="flex items-center gap-1.5 mr-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-                className="h-7 text-xs px-2"
-              >
-                Anterior
-              </Button>
-              <span className="text-[11px]">
-                {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-                className="h-7 text-xs px-2"
-              >
-                Próximo
-              </Button>
-            </div>
-          )}
-
-          {(hasNextPage !== undefined || hasPrevPage !== undefined) && (
-            <div className="flex items-center gap-1.5 border-l border-border/80 pl-2">
+          {isServerPaginated ? (
+            <div className="flex items-center gap-1.5">
               <Button
                 variant="outline"
                 size="sm"
@@ -380,8 +362,11 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
                 disabled={!hasPrevPage || isLoading}
                 className="h-8 text-xs px-2.5 gap-1"
               >
-                ← Anterior (R2)
+                Anterior
               </Button>
+              <span className="text-[11px] px-2 font-medium">
+                Página {pageIndex + 1}
+              </span>
               <Button
                 variant="outline"
                 size="sm"
@@ -389,10 +374,34 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
                 disabled={!hasNextPage || isLoading}
                 className="h-8 text-xs px-2.5 gap-1"
               >
-                Próximo (R2) →
+                Próximo
               </Button>
             </div>
-          )}
+          ) : table.getPageCount() > 1 ? (
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                className="h-8 text-xs px-2.5"
+              >
+                Anterior
+              </Button>
+              <span className="text-[11px] px-2 font-medium">
+                {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                className="h-8 text-xs px-2.5"
+              >
+                Próximo
+              </Button>
+            </div>
+          ) : null}
         </div>
       </div>
 
