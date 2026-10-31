@@ -52,7 +52,8 @@ export function isMimeAllowed(mimeType: string, allowedConfig?: string): boolean
     return true;
   }
 
-  const normalizedMime = mimeType.toLowerCase().trim();
+  const rawNormalized = mimeType.toLowerCase().trim();
+  const normalizedMime = rawNormalized.split(';')[0].trim();
   const allowedRules = config
     .split(',')
     .map((r) => r.trim().toLowerCase())

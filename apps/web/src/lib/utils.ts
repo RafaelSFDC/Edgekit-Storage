@@ -60,3 +60,22 @@ export function copyToClipboard(text: string): Promise<boolean> {
     }
   }
 }
+
+/**
+ * Extracts logical folder from a storage key, correctly ignoring 'private/' prefix
+ * and temporal YYYY/MM partitions.
+ * Format: [private/][folder/][YYYY/MM/][id].[ext]
+ */
+export function extractFolderFromKey(key: string): string | null {
+  let clean = key.replace(/^\/+/, '');
+  if (clean.startsWith('private/')) {
+    clean = clean.slice('private/'.length);
+  }
+  const parts = clean.split('/');
+  if (parts.length <= 1) return null;
+  // If first segment is a 4-digit year (YYYY), it's a date partition, not a user folder
+  if (/^\d{4}$/.test(parts[0])) {
+    return null;
+  }
+  return parts[0];
+}

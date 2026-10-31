@@ -6,6 +6,7 @@ import { SignedUrlDialog } from '../src/components/console/SignedUrlDialog';
 import { WebhookFormDialog } from '../src/components/webhooks/WebhookFormDialog';
 import { FilesDataTable } from '../src/components/console/FilesDataTable';
 import { TestWrapper } from './helpers/test-wrapper';
+import { extractFolderFromKey } from '../src/lib/utils';
 import type { StorageObject } from '../src/types';
 
 describe('Rigorous Frontend Audit & Error Recovery Suite', () => {
@@ -273,6 +274,25 @@ describe('Rigorous Frontend Audit & Error Recovery Suite', () => {
 
       // Verify that mockBatchDelete was called with the exact file key
       expect(mockBatchDelete).toHaveBeenCalledWith(['documents/report-alpha.pdf']);
+    });
+  });
+
+  // =========================================================================
+  // 4. FOLDER EXTRACTION & PARTITION MASKING INTEGRITY (UI-01)
+  // =========================================================================
+  describe('Folder Extraction and Partition Masking (extractFolderFromKey)', () => {
+    it('Correctly identifies user folders while ignoring date partitions and private prefixes', () => {
+      // 1. Root public file with YYYY/MM partition -> no user folder (null)
+      expect(extractFolderFromKey('2026/10/file.png')).toBeNull();
+
+      // 2. Public file in "marketing" folder -> "marketing"
+      expect(extractFolderFromKey('marketing/2026/10/banner.png')).toBe('marketing');
+
+      // 3. Root private file with YYYY/MM partition -> no user folder (null)
+      expect(extractFolderFromKey('private/2026/10/contract.pdf')).toBeNull();
+
+      // 4. Private file in "invoices" folder -> "invoices"
+      expect(extractFolderFromKey('private/invoices/2026/10/bill.pdf')).toBe('invoices');
     });
   });
 });

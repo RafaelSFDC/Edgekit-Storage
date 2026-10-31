@@ -150,9 +150,9 @@ webhooksRouter.post('/', async (c) => {
     : ['*'];
 
   const webhookId = 'wh_' + crypto.randomUUID().replace(/-/g, '').slice(0, 18);
-  const webhookSecret = secret && secret.trim() ? secret.trim() : generateWebhookSecret();
+  const webhookSecret = typeof secret === 'string' && secret.trim() ? secret.trim() : generateWebhookSecret();
   const nowIso = new Date().toISOString();
-  const cleanPrefix = filterPrefix?.trim() ? filterPrefix.trim().replace(/^\/+/, '') : null;
+  const cleanPrefix = typeof filterPrefix === 'string' && filterPrefix.trim() ? filterPrefix.trim().replace(/^\/+/, '') : null;
 
   const db = c.env.DB!;
   try {
@@ -271,9 +271,18 @@ webhooksRouter.put('/:id', async (c) => {
     return apiError(c, 'Webhook not found', 404);
   }
 
-  const name = body.name !== undefined ? body.name.trim() : existing.name;
+  if (body.name !== undefined) {
+    if (typeof body.name !== 'string' || body.name.trim() === '') {
+      return apiError(c, 'Field "name" must be a non-empty string', 400);
+    }
+  }
+  const name = typeof body.name === 'string' ? body.name.trim() : existing.name;
+
   let url = existing.url;
   if (body.url !== undefined) {
+    if (typeof body.url !== 'string') {
+      return apiError(c, 'Field "url" must be a string', 400);
+    }
     url = body.url.trim();
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       return apiError(c, 'Field "url" must be a valid HTTP or HTTPS address', 400);
@@ -287,13 +296,25 @@ webhooksRouter.put('/:id', async (c) => {
     }
   }
 
-  const secret = body.secret !== undefined ? body.secret.trim() : existing.secret;
+  if (body.secret !== undefined && typeof body.secret !== 'string') {
+    return apiError(c, 'Field "secret" must be a string', 400);
+  }
+  const secret = typeof body.secret === 'string' && body.secret.trim() ? body.secret.trim() : existing.secret;
+
+  if (body.events !== undefined && (!Array.isArray(body.events) || body.events.some((e) => typeof e !== 'string'))) {
+    return apiError(c, 'Field "events" must be an array of event strings', 400);
+  }
   const events = body.events !== undefined
     ? JSON.stringify(body.events.map((e) => String(e).trim()).filter(Boolean))
     : existing.events;
+
+  if (body.filterPrefix !== undefined && body.filterPrefix !== null && typeof body.filterPrefix !== 'string') {
+    return apiError(c, 'Field "filterPrefix" must be a string or null', 400);
+  }
   const filterPrefix = body.filterPrefix !== undefined
-    ? (body.filterPrefix ? body.filterPrefix.trim().replace(/^\/+/, '') : null)
+    ? (typeof body.filterPrefix === 'string' && body.filterPrefix.trim() ? body.filterPrefix.trim().replace(/^\/+/, '') : null)
     : existing.filter_prefix;
+
   const isActive = body.isActive !== undefined ? (body.isActive ? 1 : 0) : existing.is_active;
   const nowIso = new Date().toISOString();
 

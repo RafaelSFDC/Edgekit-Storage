@@ -8,6 +8,7 @@ import {
   resolveFileUrl,
   buildPresignedUploadUrl,
   verifySignedUploadToken,
+  sanitizeSegment,
 } from '../utils/keys';
 import { dispatchWebhookEvent } from '../services/webhook-dispatcher';
 
@@ -78,17 +79,35 @@ uploadRouter.post('/', apiKeyAuth(), async (c) => {
   const isPrivate = formData.get('private') === 'true' || formData.get('private') === '1';
 
   // Check for pre-resized variants (fields starting with variant_ or variant[name])
-  const variantEntries: { name: string; file: File }[] = [];
+  const variantEntries: { name: string; file: File; mimeType: string }[] = [];
   for (const [fieldName, value] of formData.entries()) {
     if (value instanceof File && value.size > 0) {
-      let variantName: string | null = null;
+      let rawVariantName: string | null = null;
       if (fieldName.startsWith('variant_')) {
-        variantName = fieldName.slice('variant_'.length).trim();
+        rawVariantName = fieldName.slice('variant_'.length).trim();
       } else if (fieldName.startsWith('variant[') && fieldName.endsWith(']')) {
-        variantName = fieldName.slice('variant['.length, -1).trim();
+        rawVariantName = fieldName.slice('variant['.length, -1).trim();
       }
-      if (variantName && variantName.length > 0) {
-        variantEntries.push({ name: variantName, file: value });
+      if (rawVariantName) {
+        const variantName = sanitizeSegment(rawVariantName);
+        if (variantName) {
+          if (value.size > maxBytes) {
+            return apiError(
+              c,
+              `Variant '${variantName}' size (${(value.size / (1024 * 1024)).toFixed(2)} MB) exceeds maximum allowed limit of ${maxMb} MB`,
+              413
+            );
+          }
+          const variantMime = resolveMimeType(value.name, value.type);
+          if (!isMimeAllowed(variantMime, allowedConfig)) {
+            return apiError(
+              c,
+              `Variant '${variantName}' MIME type '${variantMime}' is not allowed. Allowed formats: ${allowedConfig}`,
+              415
+            );
+          }
+          variantEntries.push({ name: variantName, file: value, mimeType: variantMime });
+        }
       }
     }
   }
@@ -249,10 +268,13 @@ uploadRouter.post('/presigned', apiKeyAuth(), async (c) => {
   const maxMb = Number(c.env.MAX_FILE_SIZE_MB || '25');
   const maxBytes = maxMb * 1024 * 1024;
 
+  const cleanFolder = typeof folder === 'string' && folder.trim() ? sanitizeSegment(folder.trim()) : undefined;
+  const cleanCustomName = typeof customName === 'string' && customName.trim() ? sanitizeSegment(customName.trim()) : undefined;
+
   const key = generateStorageKey({
     filename: filename.trim(),
-    folder: folder?.trim(),
-    customName: customName?.trim(),
+    folder: cleanFolder,
+    customName: cleanCustomName,
     preserveName: Boolean(preserveName),
     isPrivate: Boolean(isPrivate),
   });
@@ -278,11 +300,27 @@ uploadRouter.post('/presigned', apiKeyAuth(), async (c) => {
 
   if (Array.isArray(rawVariants) && rawVariants.length > 0) {
     for (const item of rawVariants) {
-      const vName = typeof item === 'string' ? item.trim() : item?.name?.trim();
+      const rawName =
+        typeof item === 'string'
+          ? item
+          : typeof item === 'object' && typeof item?.name === 'string'
+          ? item.name
+          : null;
+      if (!rawName) continue;
+      const vName = sanitizeSegment(rawName);
       if (!vName) continue;
-      const vExt = (typeof item === 'object' && item?.extension) || originalExt || 'webp';
+
+      const rawExt =
+        typeof item === 'object' && typeof item?.extension === 'string'
+          ? item.extension
+          : null;
+      const vExt = rawExt ? sanitizeSegment(rawExt) : originalExt || 'webp';
       const vKey = `${baseKey}_${vName}${vExt ? `.${vExt}` : ''}`;
-      const vMime = resolveMimeType(vKey, typeof item === 'object' && item?.extension ? `image/${item.extension}` : mimeType);
+      const vMime = resolveMimeType(vKey, rawExt ? `image/${rawExt}` : mimeType);
+
+      if (!isMimeAllowed(vMime, allowedConfig)) {
+        continue;
+      }
 
       const presignedV = await buildPresignedUploadUrl({
         key: vKey,

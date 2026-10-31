@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import app from '../src/index';
 import { createMockEnv, createMockExecutionContext } from './helpers/mock-env';
 import { generateStorageKey, resolveFileUrl, sanitizeSegment, buildPresignedUploadUrl } from '../src/utils/keys';
+import { isMimeAllowed } from '../src/utils/mime';
 
 describe('Rigorous Backend Audit & Extreme Edge Cases Suite', () => {
   // =========================================================================
@@ -435,6 +436,194 @@ describe('Rigorous Backend Audit & Extreme Edge Cases Suite', () => {
       const json: any = await res.json();
       expect(json.success).toBe(true);
       expect(json.data.dependencies.r2).toBe('ok');
+    });
+  });
+
+  // =========================================================================
+  // 11. VARIANT UPLOAD MIME & SIZE HARDENING (SEC-01 & SEC-02)
+  // =========================================================================
+  describe('Variant Upload MIME & Size Limit Enforcement', () => {
+    it('POST /upload must reject forbidden MIME types in variant files (SEC-01)', async () => {
+      const env = createMockEnv({ ALLOWED_MIME_TYPES: 'image/png' });
+      const ctx = createMockExecutionContext();
+
+      const form = new FormData();
+      const validFile = new File(['valid png'], 'test.png', { type: 'image/png' });
+      const forbiddenVariant = new File(['echo exploit'], 'exploit.sh', { type: 'application/x-sh' });
+
+      form.append('file', validFile);
+      form.append('variant_exploit', forbiddenVariant);
+
+      const res = await app.fetch(
+        new Request('http://localhost/upload', {
+          method: 'POST',
+          headers: {
+            'X-API-Key': env.API_KEY,
+          },
+          body: form,
+        }),
+        env,
+        ctx
+      );
+
+      expect(res.status).toBe(415);
+      const json: any = await res.json();
+      expect(json.error.message).toContain('not allowed');
+    });
+
+    it('POST /upload must reject variants exceeding MAX_FILE_SIZE_MB (SEC-02)', async () => {
+      const env = createMockEnv({ MAX_FILE_SIZE_MB: '1' });
+      const ctx = createMockExecutionContext();
+
+      const form = new FormData();
+      const validFile = new File(['valid png'], 'test.png', { type: 'image/png' });
+      const hugeVariant = new File([new Uint8Array(2 * 1024 * 1024)], 'thumb.png', { type: 'image/png' });
+
+      form.append('file', validFile);
+      form.append('variant_huge', hugeVariant);
+
+      const res = await app.fetch(
+        new Request('http://localhost/upload', {
+          method: 'POST',
+          headers: {
+            'X-API-Key': env.API_KEY,
+          },
+          body: form,
+        }),
+        env,
+        ctx
+      );
+
+      expect(res.status).toBe(413);
+      const json: any = await res.json();
+      expect(json.error.message).toContain('exceeds maximum allowed limit');
+    });
+  });
+
+  // =========================================================================
+  // 12. MIME PARAMETER HANDLING & SVG CSP SANDBOX (BUG-02 & SEC-03)
+  // =========================================================================
+  describe('MIME Parameter Normalization & SVG Sandbox CSP', () => {
+    it('isMimeAllowed must permit valid MIME types with parameters such as charset', () => {
+      expect(isMimeAllowed('application/pdf; charset=utf-8', 'image/*,application/pdf')).toBe(true);
+      expect(isMimeAllowed('image/svg+xml; charset=UTF-8', 'image/*')).toBe(true);
+      expect(isMimeAllowed('text/plain; charset=iso-8859-1', 'image/*')).toBe(false);
+    });
+
+    it('GET /f/:key must enforce Content-Security-Policy sandbox on SVG even with parameters in MIME', async () => {
+      const env = createMockEnv();
+      const ctx = createMockExecutionContext();
+
+      const svgKey = 'images/vector-param.svg';
+      const svgContent = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>';
+      await env.BUCKET.put(svgKey, new TextEncoder().encode(svgContent), {
+        httpMetadata: { contentType: 'image/svg+xml; charset=utf-8' },
+      });
+
+      const res = await app.fetch(new Request(`http://localhost/f/${svgKey}`), env, ctx);
+      expect(res.status).toBe(200);
+
+      const csp = res.headers.get('content-security-policy');
+      expect(csp).toBeDefined();
+      expect(csp).toContain('sandbox');
+      expect(csp).toContain("default-src 'none'");
+    });
+  });
+
+  // =========================================================================
+  // 13. TYPE RESILIENCE ON OPTIONAL BODY FIELDS (BUG-01)
+  // =========================================================================
+  describe('Type Resilience On Malformed Optional Body Fields', () => {
+    it('POST /upload/presigned handles numeric customName cleanly without 500 error', async () => {
+      const env = createMockEnv();
+      const ctx = createMockExecutionContext();
+
+      const res = await app.fetch(
+        new Request('http://localhost/upload/presigned', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': env.API_KEY,
+          },
+          body: JSON.stringify({
+            filename: 'photo.png',
+            customName: 12345,
+          }),
+        }),
+        env,
+        ctx
+      );
+
+      // Successfully handles request or validates with 200/201 (not 500 crash)
+      expect(res.status).toBe(201);
+    });
+
+    it('PUT /api/webhooks/:id returns 400 Bad Request for non-string fields', async () => {
+      const env = createMockEnv();
+      const ctx = createMockExecutionContext();
+
+      // Create webhook
+      const createRes = await app.fetch(
+        new Request('http://localhost/api/webhooks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': env.API_KEY,
+          },
+          body: JSON.stringify({
+            name: 'Original Hook',
+            url: 'https://example.com/webhook',
+          }),
+        }),
+        env,
+        ctx
+      );
+      const created: any = await createRes.json();
+      const id = created.data.id;
+
+      // Update with invalid types
+      const updateRes = await app.fetch(
+        new Request(`http://localhost/api/webhooks/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': env.API_KEY,
+          },
+          body: JSON.stringify({
+            name: { invalid: true },
+          }),
+        }),
+        env,
+        ctx
+      );
+
+      expect(updateRes.status).toBe(400);
+    });
+  });
+
+  // =========================================================================
+  // 14. CROSS-ORIGIN LOGOUT COOKIE DIRECTIVES (SEC-04)
+  // =========================================================================
+  describe('Cross-Origin Session Cookie Logout Directives', () => {
+    it('POST /api/auth/logout includes SameSite=None and Secure on cross-origin requests', async () => {
+      const env = createMockEnv();
+      const ctx = createMockExecutionContext();
+
+      const res = await app.fetch(
+        new Request('https://api.example.com/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            Origin: 'https://dashboard.example.com',
+          },
+        }),
+        env,
+        ctx
+      );
+
+      const setCookie = res.headers.get('set-cookie');
+      expect(setCookie).toBeDefined();
+      expect(setCookie?.toLowerCase()).toContain('samesite=none');
+      expect(setCookie?.toLowerCase()).toContain('secure');
     });
   });
 });

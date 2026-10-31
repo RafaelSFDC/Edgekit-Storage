@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchFiles, fetchHealth } from '../../services/api';
 import { queryKeys } from './query-keys';
+import { extractFolderFromKey } from '../../lib/utils';
 import type { StorageStats } from '../../types';
 
 export function useStatsQuery() {
@@ -28,9 +29,9 @@ export function useStatsQuery() {
 
       const folderSet = new Set<string>();
       objects.forEach((obj) => {
-        const parts = obj.key.split('/');
-        if (parts.length > 1) {
-          folderSet.add(parts[0]);
+        const folder = extractFolderFromKey(obj.key);
+        if (folder) {
+          folderSet.add(folder);
         }
       });
 

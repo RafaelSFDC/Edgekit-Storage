@@ -44,6 +44,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { useI18n } from '../../i18n/context';
+import { extractFolderFromKey } from '../../lib/utils';
 
 interface FilesDataTableProps {
   data: StorageObject[];
@@ -87,9 +88,9 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
   const folders = useMemo(() => {
     const set = new Set<string>();
     data.forEach((obj) => {
-      const parts = obj.key.split('/');
-      if (parts.length > 1) {
-        set.add(parts[0]);
+      const folder = extractFolderFromKey(obj.key);
+      if (folder) {
+        set.add(folder);
       }
     });
     return Array.from(set).sort();
@@ -125,7 +126,7 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
 
       // 2. Filtro de pasta
       if (folderFilter !== 'all') {
-        const itemFolder = item.key.includes('/') ? item.key.split('/')[0] : '';
+        const itemFolder = extractFolderFromKey(item.key);
         if (itemFolder !== folderFilter) return false;
       }
 

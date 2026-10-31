@@ -68,7 +68,8 @@ filesRouter.get('/f/:key{.*}', async (c) => {
   }
 
   // Prevent stored XSS when serving vector images or markup
-  if (resolvedMime === 'image/svg+xml' || resolvedMime === 'text/html' || resolvedMime === 'application/xhtml+xml') {
+  const baseMime = resolvedMime.split(';')[0].trim().toLowerCase();
+  if (baseMime === 'image/svg+xml' || baseMime === 'text/html' || baseMime === 'application/xhtml+xml') {
     headers.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
   }
 
@@ -177,7 +178,8 @@ filesRouter.get(
     }
 
     // Prevent stored XSS when serving vector images or markup
-    if (resolvedMime === 'image/svg+xml' || resolvedMime === 'text/html' || resolvedMime === 'application/xhtml+xml') {
+    const baseMime = resolvedMime.split(';')[0].trim().toLowerCase();
+    if (baseMime === 'image/svg+xml' || baseMime === 'text/html' || baseMime === 'application/xhtml+xml') {
       headers.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
     }
 

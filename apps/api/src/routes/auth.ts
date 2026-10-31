@@ -75,8 +75,27 @@ authRouter.post('/login', async (c) => {
  * Clears the HttpOnly session cookie.
  */
 authRouter.post('/logout', (c) => {
+  const requestUrl = new URL(c.req.url);
+  const isLocalhost =
+    requestUrl.hostname === 'localhost' ||
+    requestUrl.hostname === '127.0.0.1' ||
+    requestUrl.hostname === '[::1]';
+
+  const originHeader = c.req.header('origin');
+  let isCrossOrigin = false;
+  if (originHeader) {
+    try {
+      const originUrl = new URL(originHeader);
+      if (originUrl.host !== requestUrl.host) {
+        isCrossOrigin = true;
+      }
+    } catch {}
+  }
+
   deleteCookie(c, AUTH_COOKIE_NAME, {
     path: '/',
+    secure: !isLocalhost || (isCrossOrigin && originHeader?.startsWith('https:')),
+    sameSite: isCrossOrigin && !isLocalhost ? 'None' : 'Lax',
   });
 
   return apiSuccess(c, {

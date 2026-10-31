@@ -7,6 +7,7 @@ import { uploadRouter } from './routes/upload';
 import { filesRouter } from './routes/files';
 import { webhooksRouter } from './routes/webhooks';
 import { apiError } from './utils/response';
+import { pruneOldWebhookDeliveries } from './services/webhook-dispatcher';
 
 const app = new Hono<AppContext>();
 
@@ -108,5 +109,18 @@ app.onError((err, c) => {
     err instanceof Error ? err.message : String(err)
   );
 });
+
+// Scheduled Cron Trigger Handler (Automated D1 Retention Pruning)
+const scheduledHandler = async (event: any, env: any) => {
+  if (env?.DB) {
+    try {
+      await pruneOldWebhookDeliveries(env.DB, 30);
+    } catch (err) {
+      console.error('[Cron Error] Failed to prune old webhook deliveries:', err);
+    }
+  }
+};
+
+Object.assign(app, { scheduled: scheduledHandler });
 
 export default app;
