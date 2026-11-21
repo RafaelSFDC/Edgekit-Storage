@@ -2,9 +2,6 @@ import type { SVGProps } from 'react';
 
 export type EdgekitModuleId = 'platform' | 'auth' | 'storage' | 'queue' | 'events';
 
-// Legacy compatibility type
-export type DioramaAppId = EdgekitModuleId | 'desktop' | 'driver' | 'update' | 'library' | 'care';
-
 /**
  * Mapeamento das cores hexadecimais oficiais da família Edgekit.
  */
@@ -35,30 +32,10 @@ export const EDGEKIT_MODULE_CSS_VARS: Record<EdgekitModuleId, string> = {
   events: '--edgekit-events',
 };
 
-// Backwards compatibility aliases
-export const DIORAMA_APP_COLORS: Record<string, string> = {
-  ...EDGEKIT_MODULE_COLORS,
-  desktop: 'var(--edgekit-platform, #F38020)',
-  driver: 'var(--edgekit-auth, #6366F1)',
-  update: 'var(--edgekit-storage, #10B981)',
-  library: 'var(--edgekit-queue, #EC4899)',
-  care: 'var(--edgekit-events, #0EA5E9)',
-};
-
-export const DIORAMA_APP_CSS_VARS: Record<string, string> = {
-  ...EDGEKIT_MODULE_CSS_VARS,
-  desktop: '--edgekit-platform',
-  driver: '--edgekit-auth',
-  update: '--edgekit-storage',
-  library: '--edgekit-queue',
-  care: '--edgekit-events',
-};
-
 export interface EdgekitLogoProps extends SVGProps<SVGSVGElement> {
   size?: number;
   variant?: 'app-icon' | 'symbol' | 'glow';
   module?: EdgekitModuleId;
-  app?: DioramaAppId; // Alias for module
 }
 
 /**
@@ -70,16 +47,14 @@ export function EdgekitLogo({
   size = 24,
   variant = 'app-icon',
   module = 'storage',
-  app,
   className = '',
   fill,
   ...props
 }: EdgekitLogoProps) {
-  const activeModule = (app as EdgekitModuleId) ?? module;
   const brandColor =
     fill ??
-    (activeModule && EDGEKIT_MODULE_COLORS[activeModule]
-      ? EDGEKIT_MODULE_COLORS[activeModule]
+    (module && EDGEKIT_MODULE_COLORS[module]
+      ? EDGEKIT_MODULE_COLORS[module]
       : 'var(--edgekit-storage, #10B981)');
 
   const coreFill = variant === 'symbol' ? (fill ?? 'currentColor') : brandColor;
@@ -144,7 +119,4 @@ export function EdgekitLogo({
   );
 }
 
-// Backwards compatibility export
-export const DioramaLogo = EdgekitLogo;
-export type DioramaLogoProps = EdgekitLogoProps;
 export default EdgekitLogo;

@@ -34,6 +34,11 @@
       "database_id": "edgekit-storage-db"
     }
   ],
+  "triggers": {
+    "crons": [
+      "0 3 * * *"
+    ]
+  },
   "vars": {
     "PUBLIC_URL": "",
     "ALLOWED_MIME_TYPES": "image/*,application/pdf",

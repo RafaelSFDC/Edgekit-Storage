@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useCallback, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchAuthMe, loginAuth, logoutAuth } from '../services/api';
 import { queryKeys } from '../hooks/api/query-keys';
@@ -10,9 +10,6 @@ export interface AuthContextType {
   isLoggingIn: boolean;
   isLoggingOut: boolean;
   error: string | null;
-  isModalOpen: boolean;
-  openModal: () => void;
-  closeModal: () => void;
   login: (apiKey: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
@@ -21,7 +18,6 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const queryClient = useQueryClient();
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // 1. Verificação contínua e inicial de sessão via Cookie HttpOnly
   const { data, isLoading } = useQuery({
@@ -40,7 +36,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       queryClient.setQueryData(queryKeys.auth.me(), { authenticated: true });
       queryClient.invalidateQueries({ queryKey: queryKeys.files.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.stats.all });
-      setIsModalOpen(false);
       toast.success('Chave de acesso validada! Sessão iniciada.');
     },
     onError: (err: any) => {
@@ -55,7 +50,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     onSuccess: () => {
       queryClient.setQueryData(queryKeys.auth.me(), { authenticated: false });
       queryClient.removeQueries({ queryKey: queryKeys.files.all });
-      setIsModalOpen(false);
       toast.info('Sessão encerrada.');
     },
     onError: (err: any) => {
@@ -63,18 +57,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       toast.error(msg);
     },
   });
-
-  const openModal = useCallback(() => {
-    loginMutation.reset();
-    logoutMutation.reset();
-    setIsModalOpen(true);
-  }, [loginMutation, logoutMutation]);
-
-  const closeModal = useCallback(() => {
-    loginMutation.reset();
-    logoutMutation.reset();
-    setIsModalOpen(false);
-  }, [loginMutation, logoutMutation]);
 
   const login = useCallback(
     async (apiKey: string): Promise<boolean> => {
@@ -100,18 +82,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isLoggingIn: loginMutation.isPending,
     isLoggingOut: logoutMutation.isPending,
     error,
-    isModalOpen,
-    openModal,
-    closeModal,
     login,
     logout,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useOptionalAuth = (): AuthContextType | null => {
-  return useContext(AuthContext);
 };
 
 export const useAuth = (): AuthContextType => {

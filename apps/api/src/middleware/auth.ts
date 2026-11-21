@@ -2,7 +2,7 @@ import type { MiddlewareHandler } from 'hono';
 import { getCookie } from 'hono/cookie';
 import type { AppContext } from '../env';
 import { apiError } from '../utils/response';
-import { timingSafeEqualStr } from '../utils/keys';
+import { timingSafeEqualStr, verifySessionToken } from '../utils/keys';
 
 export const AUTH_COOKIE_NAME = 'cf_storage_session';
 
@@ -11,8 +11,7 @@ export const AUTH_COOKIE_NAME = 'cf_storage_session';
  * Accepts:
  * - Header: 'X-API-Key: <key>'
  * - Header: 'Authorization: Bearer <key>'
- * - HttpOnly Cookie: 'cf_storage_session=<key>' (used by dashboard)
- * - Query param: '?apiKey=<key>' (optional)
+ * - HttpOnly Cookie: 'cf_storage_session=<timestamp>.<hmacSignature>' (used by dashboard)
  */
 export function apiKeyAuth(): MiddlewareHandler<AppContext> {
   return async (c, next) => {
@@ -40,15 +39,9 @@ export function apiKeyAuth(): MiddlewareHandler<AppContext> {
       }
     }
 
-    // 3. Check HttpOnly session cookie (for Dashboard)
+    // 3. Check HttpOnly session cookie (for Dashboard - HMAC-SHA256 signed token)
     const sessionCookie = getCookie(c, AUTH_COOKIE_NAME);
-    if (sessionCookie && timingSafeEqualStr(sessionCookie, configuredKey)) {
-      return next();
-    }
-
-    // 4. Check query parameter ?apiKey=<token>
-    const queryKey = c.req.query('apiKey');
-    if (queryKey && timingSafeEqualStr(queryKey, configuredKey)) {
+    if (sessionCookie && (await verifySessionToken(sessionCookie, configuredKey))) {
       return next();
     }
 

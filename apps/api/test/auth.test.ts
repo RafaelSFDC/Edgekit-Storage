@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import app from '../src/index';
 import { createMockEnv, createMockExecutionContext } from './helpers/mock-env';
 import { AUTH_COOKIE_NAME } from '../src/middleware/auth';
-import { timingSafeEqualStr } from '../src/utils/keys';
+import { timingSafeEqualStr, generateSessionToken } from '../src/utils/keys';
 
 describe('Backend Auth & Security Suite', () => {
   it('should return 500 when API_KEY is not configured in the worker environment', async () => {
@@ -96,11 +96,24 @@ describe('Backend Auth & Security Suite', () => {
     expect(res.status).toBe(401);
   });
 
-  it('should authenticate successfully with HttpOnly session cookie', async () => {
+  it('should authenticate successfully with HttpOnly signed session cookie and reject raw key cookie', async () => {
     const env = createMockEnv();
     const ctx = createMockExecutionContext();
 
+    const sessionToken = await generateSessionToken(env.API_KEY);
+
     const res = await app.fetch(
+      new Request('http://localhost/api/files', {
+        headers: { Cookie: `${AUTH_COOKIE_NAME}=${sessionToken}` },
+      }),
+      env,
+      ctx
+    );
+
+    expect(res.status).toBe(200);
+
+    // Raw API key directly in cookie should be rejected (must be HMAC-SHA256 signed session token)
+    const rawRes = await app.fetch(
       new Request('http://localhost/api/files', {
         headers: { Cookie: `${AUTH_COOKIE_NAME}=${env.API_KEY}` },
       }),
@@ -108,10 +121,10 @@ describe('Backend Auth & Security Suite', () => {
       ctx
     );
 
-    expect(res.status).toBe(200);
+    expect(rawRes.status).toBe(401);
   });
 
-  it('should authenticate with query parameter ?apiKey=<token>', async () => {
+  it('should reject query parameter ?apiKey=<token> (administrative security hardening)', async () => {
     const env = createMockEnv();
     const ctx = createMockExecutionContext();
 
@@ -121,7 +134,7 @@ describe('Backend Auth & Security Suite', () => {
       ctx
     );
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(401);
   });
 
   it('POST /api/auth/login should set HttpOnly session cookie on valid credentials', async () => {

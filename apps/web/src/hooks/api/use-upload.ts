@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { uploadFile } from '../../services/api';
+import { uploadFilePresigned, uploadFile } from '../../services/api';
 import { queryKeys } from './query-keys';
 import { toast } from 'sonner';
 
@@ -7,7 +7,19 @@ export function useUploadMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (formData: FormData) => uploadFile(formData),
+    mutationFn: (options: {
+      file: File;
+      folder?: string;
+      customName?: string;
+      preserveName?: boolean;
+      isPrivate?: boolean;
+      signal?: AbortSignal;
+    } | FormData) => {
+      if (options instanceof FormData) {
+        return uploadFile(options);
+      }
+      return uploadFilePresigned(options);
+    },
     onSuccess: (data) => {
       toast.success(`Upload de "${data.key}" realizado com sucesso!`);
       queryClient.invalidateQueries({ queryKey: queryKeys.files.all });

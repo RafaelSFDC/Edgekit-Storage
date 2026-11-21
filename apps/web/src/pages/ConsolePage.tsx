@@ -12,14 +12,22 @@ import type { StorageObject } from '../types';
 
 export const ConsolePage: React.FC = () => {
   const { t } = useI18n();
+  const [searchPrefix, setSearchPrefix] = useState('');
   const [pageIndex, setPageIndex] = useState(0);
   const [cursorHistory, setCursorHistory] = useState<(string | null)[]>([null]);
+
+  const handleSearchPrefixChange = (prefix: string) => {
+    setSearchPrefix(prefix);
+    setPageIndex(0);
+    setCursorHistory([null]);
+  };
 
   const currentCursor = cursorHistory[pageIndex] || null;
 
   const { data, isLoading, refetch } = useFilesQuery({
     limit: 50,
     cursor: currentCursor,
+    prefix: searchPrefix.trim() || undefined,
   });
 
   const deleteMutation = useDeleteFileMutation();
@@ -75,6 +83,8 @@ export const ConsolePage: React.FC = () => {
       <FilesDataTable
         data={objects}
         isLoading={isLoading || deleteMutation.isPending || batchDeleteMutation.isPending}
+        searchPrefix={searchPrefix}
+        onSearchPrefixChange={handleSearchPrefixChange}
         onRefresh={() => refetch()}
         onOpenUpload={() => setIsUploadOpen(true)}
         onPreview={(file) => setPreviewFile(file)}
@@ -112,9 +122,9 @@ export const ConsolePage: React.FC = () => {
         onOpenChange={(open) => {
           if (!open) setFileToDelete(null);
         }}
-        title="Excluir Arquivo"
-        description={`Tem certeza de que deseja excluir o arquivo "${fileToDelete}"?`}
-        confirmText="Excluir"
+        title={t.console.deleteFileDialogTitle}
+        description={t.console.deleteFileDialogDesc(fileToDelete || '')}
+        confirmText={t.common.delete}
         cancelText={t.common.cancel}
         variant="destructive"
         onConfirm={handleConfirmDelete}

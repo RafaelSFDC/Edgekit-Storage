@@ -13,6 +13,7 @@ import { ConsolePage } from './pages/ConsolePage';
 import { SnippetsPage } from './pages/SnippetsPage';
 import { WebhooksPage } from './pages/WebhooksPage';
 import { useAuth } from './context/auth-context';
+import { useI18n } from './i18n/context';
 import { EdgekitLogo } from './components/common/EdgekitLogo';
 
 /**
@@ -22,6 +23,7 @@ import { EdgekitLogo } from './components/common/EdgekitLogo';
  */
 const DashboardGuard: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
+  const { t } = useI18n();
 
   if (isLoading) {
     return (
@@ -29,7 +31,7 @@ const DashboardGuard: React.FC = () => {
         <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary animate-pulse">
           <EdgekitLogo size={28} module="storage" />
         </div>
-        <p className="text-xs text-muted-foreground animate-pulse">Carregando...</p>
+        <p className="text-xs text-muted-foreground animate-pulse">{t.common.loading}</p>
       </div>
     );
   }

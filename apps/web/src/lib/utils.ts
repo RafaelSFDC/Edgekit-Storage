@@ -11,16 +11,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatTime(timestamp: number | string | Date): string {
-  const date = new Date(timestamp);
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  const seconds = date.getSeconds().toString().padStart(2, '0');
-  return `${hours}:${minutes}:${seconds}`;
-}
-
 export function formatDate(timestamp: number | string | Date, locale: string = 'pt-BR'): string {
-  const date = new Date(timestamp);
+  let val: number | string | Date = timestamp;
+  if (typeof val === 'number' && val < 10000000000) {
+    // Unix timestamp in seconds (less than 10 billion, year 2286)
+    val = val * 1000;
+  } else if (typeof val === 'string' && /^\d+$/.test(val) && Number(val) < 10000000000) {
+    val = Number(val) * 1000;
+  }
+  const date = new Date(val);
   return date.toLocaleString(locale === 'pt-BR' ? 'pt-BR' : 'en-US', {
     day: '2-digit',
     month: 'short',

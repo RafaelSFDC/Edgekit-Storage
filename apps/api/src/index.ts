@@ -6,6 +6,7 @@ import { authRouter } from './routes/auth';
 import { uploadRouter } from './routes/upload';
 import { filesRouter } from './routes/files';
 import { webhooksRouter } from './routes/webhooks';
+import { statsRouter } from './routes/stats';
 import { apiError } from './utils/response';
 import { pruneOldWebhookDeliveries } from './services/webhook-dispatcher';
 
@@ -45,7 +46,8 @@ app.use(
     },
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'Content-Length'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'Content-Length', 'Range', 'Cache-Control', 'X-Requested-With'],
+    exposeHeaders: ['Content-Length', 'Content-Type', 'ETag', 'Content-Range', 'Accept-Ranges'],
     maxAge: 86400,
   })
 );
@@ -53,9 +55,9 @@ app.use(
 // Mount route modules
 app.route('/api/auth', authRouter);
 app.route('/api/webhooks', webhooksRouter);
-app.route('/', healthRouter);
-app.route('/upload', uploadRouter);
+app.route('/api/stats', statsRouter);
 app.route('/api/upload', uploadRouter);
+app.route('/', healthRouter);
 app.route('/', filesRouter);
 
 // Root route: serve frontend SPA dashboard or redirect to API info if Accept is JSON

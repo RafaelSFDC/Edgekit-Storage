@@ -144,7 +144,7 @@ export const TopHeader: React.FC = () => {
                 >
                   <div className="flex items-center gap-2">
                     <Globe className="size-4" />
-                    <span>{locale === 'pt-BR' ? 'Idioma' : 'Language'}</span>
+                    <span>{t.navbar.language}</span>
                   </div>
                   <span className="font-semibold text-[10px] uppercase bg-muted px-1.5 py-0.5 rounded border border-border/70 text-foreground">
                     {locale === 'pt-BR' ? 'PT-BR' : 'EN'}
@@ -157,12 +157,10 @@ export const TopHeader: React.FC = () => {
                     ) : (
                       <Sun className="size-4 text-amber-500" />
                     )}
-                    <span>{locale === 'pt-BR' ? 'Aparência' : 'Appearance'}</span>
+                    <span>{t.navbar.appearance}</span>
                   </div>
                   <span className="text-[11px] text-muted-foreground">
-                    {resolvedTheme === 'dark'
-                      ? (locale === 'pt-BR' ? 'Escuro' : 'Dark')
-                      : (locale === 'pt-BR' ? 'Claro' : 'Light')}
+                    {resolvedTheme === 'dark' ? t.navbar.themeDark : t.navbar.themeLight}
                   </span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
@@ -172,7 +170,7 @@ export const TopHeader: React.FC = () => {
                 onClick={() => logout()}
               >
                 <LogOut className="size-4" />
-                <span>{locale === 'pt-BR' ? 'Finalizar sessão' : 'Sign out'}</span>
+                <span>{t.navbar.signOut}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

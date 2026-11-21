@@ -54,7 +54,7 @@ export const SignedUrlDialog: React.FC<SignedUrlDialogProps> = ({
   const [duration, setDuration] = useState<string>('3600');
   const [signedResult, setSignedResult] = useState<{
     url: string;
-    expiresAt: string;
+    expiresAt: string | number;
   } | null>(null);
 
   const signedMutation = useSignedUrlMutation();

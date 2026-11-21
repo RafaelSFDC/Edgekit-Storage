@@ -7,6 +7,23 @@ import { RouterTestWrapper } from './helpers/test-wrapper';
 describe('Frontend Overview & Stats Architecture Suite', () => {
   it('renders stats cards and shortcut links', async () => {
     global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/stats')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              success: true,
+              data: {
+                totalFiles: 2,
+                totalBytes: 3072,
+                privateFiles: 1,
+                publicFiles: 1,
+                foldersCount: 2,
+              },
+            }),
+        });
+      }
       if (url.includes('/api/files')) {
         return Promise.resolve({
           ok: true,
@@ -60,28 +77,9 @@ describe('Frontend Overview & Stats Architecture Suite', () => {
     });
   });
 
-  it('correctly paginates and aggregates files across batches in useStatsQuery when bucket exceeds 100 files', async () => {
-    const page1Objects = Array.from({ length: 100 }, (_, i) => ({
-      key: `folder${i % 5}/file_${i}.png`,
-      size: 1000,
-      uploadedAt: '2026-10-30T10:00:00.000Z',
-      mimeType: 'image/png',
-      url: `http://localhost/f/file_${i}.png`,
-      isPrivate: false,
-    }));
-
-    const page2Objects = Array.from({ length: 50 }, (_, i) => ({
-      key: `folder${i % 5}/extra_${i}.png`,
-      size: 1000,
-      uploadedAt: '2026-10-30T10:00:00.000Z',
-      mimeType: 'image/png',
-      url: `http://localhost/f/extra_${i}.png`,
-      isPrivate: false,
-    }));
-
+  it('correctly loads and displays stats from /api/stats endpoint in useStatsQuery when bucket exceeds 100 files', async () => {
     global.fetch = vi.fn().mockImplementation((url: string) => {
-      if (url.includes('/api/files')) {
-        const isPage2 = url.includes('cursor=page-2');
+      if (url.includes('/api/stats')) {
         return Promise.resolve({
           ok: true,
           status: 200,
@@ -89,9 +87,11 @@ describe('Frontend Overview & Stats Architecture Suite', () => {
             Promise.resolve({
               success: true,
               data: {
-                objects: isPage2 ? page2Objects : page1Objects,
-                truncated: !isPage2,
-                cursor: isPage2 ? null : 'page-2',
+                totalFiles: 150,
+                totalBytes: 150000,
+                privateFiles: 0,
+                publicFiles: 150,
+                foldersCount: 5,
               },
             }),
         });
@@ -108,7 +108,6 @@ describe('Frontend Overview & Stats Architecture Suite', () => {
       </RouterTestWrapper>
     );
 
-    // useStatsQuery paginates and aggregates all 150 files across batches
     await waitFor(() => {
       const totalCards = screen.getAllByText('150');
       expect(totalCards.length).toBeGreaterThan(0);

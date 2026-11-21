@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ExternalLink,
   Copy,
@@ -7,6 +7,7 @@ import {
   KeyRound,
   FileText,
   File,
+  Loader2,
 } from 'lucide-react';
 import {
   Dialog,
@@ -21,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import type { StorageObject } from '../../types';
+import { generateSignedUrl } from '../../services/api';
 import { formatBytes, formatDate, copyToClipboard } from '../../lib/utils';
 import { useI18n } from '../../i18n/context';
 import { toast } from 'sonner';
@@ -38,9 +40,40 @@ export const FilePreviewDialog: React.FC<FilePreviewDialogProps> = ({
   onOpenChange,
   onGenerateSignedUrl,
 }) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [isLoadingSigned, setIsLoadingSigned] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (open && file && file.isPrivate) {
+      setIsLoadingSigned(true);
+      generateSignedUrl(file.key, 3600)
+        .then((res) => {
+          if (active && res?.url) {
+            setSignedUrl(res.url);
+          }
+        })
+        .catch(() => {
+          // If automatic signing fails, user can still use manual signed url dialog
+        })
+        .finally(() => {
+          if (active) {
+            setIsLoadingSigned(false);
+          }
+        });
+    } else {
+      setSignedUrl(null);
+      setIsLoadingSigned(false);
+    }
+    return () => {
+      active = false;
+    };
+  }, [open, file]);
 
   if (!file) return null;
+
+  const activeUrl = (file.isPrivate && signedUrl) ? signedUrl : file.url;
 
   const isImage = file.mimeType.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|svg|avif)$/i.test(file.key);
   const isVideo = file.mimeType.startsWith('video/') || /\.(mp4|webm|ogg|mov)$/i.test(file.key);
@@ -48,7 +81,7 @@ export const FilePreviewDialog: React.FC<FilePreviewDialogProps> = ({
   const isPdf = file.mimeType.includes('pdf') || /\.pdf$/i.test(file.key);
 
   const handleCopyUrl = async () => {
-    const success = await copyToClipboard(file.url);
+    const success = await copyToClipboard(activeUrl);
     if (success) {
       toast.success(t.common.copied);
     } else {
@@ -70,14 +103,14 @@ export const FilePreviewDialog: React.FC<FilePreviewDialogProps> = ({
               }
             >
               {file.isPrivate ? <Lock className="size-3" /> : <Globe className="size-3" />}
-              <span>{file.isPrivate ? 'Arquivo Privado' : 'Arquivo Público'}</span>
+              <span>{file.isPrivate ? t.previewModal.privateFile : t.previewModal.publicFile}</span>
             </Badge>
           </div>
           <DialogTitle className="truncate pt-1" title={file.key}>
             {file.key}
           </DialogTitle>
           <DialogDescription>
-            {formatBytes(file.size)} • {file.mimeType} • {formatDate(file.uploadedAt)}
+            {formatBytes(file.size)} • {file.mimeType} • {formatDate(file.uploadedAt, locale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -85,21 +118,26 @@ export const FilePreviewDialog: React.FC<FilePreviewDialogProps> = ({
         <DialogBody className="p-6 space-y-4">
           {/* Pré-visualização do Arquivo */}
           <div className="min-h-[220px] max-h-[380px] w-full rounded-lg bg-muted/40 border border-border/80 flex items-center justify-center overflow-hidden">
-            {isImage ? (
+            {isLoadingSigned ? (
+              <div className="flex flex-col items-center gap-2 text-muted-foreground p-6 text-center">
+                <Loader2 className="size-6 animate-spin text-primary" />
+                <span className="text-xs font-mono">{t.common.loading}</span>
+              </div>
+            ) : isImage ? (
               <img
-                src={file.url}
+                src={activeUrl}
                 alt={file.key}
                 className="max-h-full max-w-full object-contain"
               />
             ) : isVideo ? (
               <video
-                src={file.url}
+                src={activeUrl}
                 controls
                 className="max-h-full max-w-full"
               />
             ) : isAudio ? (
               <audio
-                src={file.url}
+                src={activeUrl}
                 controls
                 className="w-4/5"
               />
@@ -120,7 +158,7 @@ export const FilePreviewDialog: React.FC<FilePreviewDialogProps> = ({
             <Input
               type="text"
               readOnly
-              value={file.url}
+              value={activeUrl}
               className="font-mono text-xs select-all bg-muted/30"
             />
             <Button
@@ -155,9 +193,9 @@ export const FilePreviewDialog: React.FC<FilePreviewDialogProps> = ({
             <Button
               variant="outline"
               render={
-                <a href={file.url} target="_blank" rel="noopener noreferrer">
+                <a href={activeUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="size-3.5" />
-                  <span>Abrir</span>
+                  <span>{t.previewModal.open}</span>
                 </a>
               }
             />

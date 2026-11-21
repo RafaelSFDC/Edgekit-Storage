@@ -37,21 +37,12 @@ export interface SignedUrlResponse {
   data: {
     url: string;
     key: string;
-    expiresAt: string;
+    expiresAt: number | string;
     expiresInSeconds: number;
   };
   error?: {
     message: string;
   };
-}
-
-export interface UploadItem {
-  id: string;
-  file: File;
-  progress: number;
-  status: 'pending' | 'uploading' | 'completed' | 'error';
-  error?: string;
-  result?: StorageObject;
 }
 
 export interface StorageStats {

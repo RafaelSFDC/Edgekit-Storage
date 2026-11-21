@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -53,6 +53,8 @@ interface FilesDataTableProps {
   onNextPage?: () => void;
   onPrevPage?: () => void;
   pageIndex?: number;
+  searchPrefix?: string;
+  onSearchPrefixChange?: (prefix: string) => void;
 }
 
 export const FilesDataTable: React.FC<FilesDataTableProps> = ({
@@ -69,13 +71,29 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
   onNextPage,
   onPrevPage,
   pageIndex = 0,
+  searchPrefix = '',
+  onSearchPrefixChange,
 }) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [sorting, setSorting] = useState<SortingState>([{ id: 'uploadedAt', desc: true }]);
-  const [globalFilter, setGlobalFilter] = useState('');
+  const [globalFilter, setGlobalFilter] = useState(searchPrefix);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [folderFilter, setFolderFilter] = useState<string>('all');
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+  // Sync external searchPrefix if changed outside
+  useEffect(() => {
+    setGlobalFilter(searchPrefix);
+  }, [searchPrefix]);
+
+  // Debounced notification to parent for server-side prefix querying
+  useEffect(() => {
+    if (!onSearchPrefixChange) return;
+    const timer = setTimeout(() => {
+      onSearchPrefixChange(globalFilter);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [globalFilter, onSearchPrefixChange]);
 
   // Pastas únicas extraídas dos dados
   const folders = useMemo(() => {
@@ -102,10 +120,10 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
 
   const folderOptions = useMemo(
     () => [
-      { value: 'all', label: 'Todas as pastas' },
+      { value: 'all', label: t.console.allFolders },
       ...folders.map((f) => ({ value: f, label: f })),
     ],
-    [folders]
+    [folders, t]
   );
 
   // Filtragem composta
@@ -123,23 +141,25 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
         if (itemFolder !== folderFilter) return false;
       }
 
-      // 3. Busca por texto
-      if (globalFilter.trim()) {
+      // 3. Busca local por texto (se não for busca server-side via prefixo)
+      if (!onSearchPrefixChange && globalFilter.trim()) {
         const term = globalFilter.toLowerCase();
         return item.key.toLowerCase().includes(term) || item.mimeType.toLowerCase().includes(term);
       }
 
       return true;
     });
-  }, [data, typeFilter, folderFilter, globalFilter]);
+  }, [data, typeFilter, folderFilter, globalFilter, onSearchPrefixChange]);
 
   const meta: FilesTableMeta = useMemo(
     () => ({
+      t,
+      locale,
       onPreview,
       onGenerateSignedUrl,
       onDelete,
     }),
-    [onPreview, onGenerateSignedUrl, onDelete]
+    [t, locale, onPreview, onGenerateSignedUrl, onDelete]
   );
 
   const isServerPaginated = hasNextPage !== undefined || hasPrevPage !== undefined;
@@ -262,7 +282,7 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
         <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/70 border border-border/80 animate-in fade-in-50 duration-150">
           <div className="flex items-center gap-2 text-xs font-medium text-foreground">
             <CheckSquare className="size-4 text-primary" />
-            <span>{selectedCount} arquivo(s) selecionado(s)</span>
+            <span>{t.console.filesSelected(selectedCount)}</span>
           </div>
 
           <Button
@@ -325,7 +345,7 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
                       className="mt-2 text-xs"
                     >
                       <Upload className="size-3.5 mr-1.5" />
-                      Fazer primeiro upload
+                      {t.console.firstUpload}
                     </Button>
                   </div>
                 </TableCell>
@@ -340,8 +360,8 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
         <div>
           <span>
             {isServerPaginated
-              ? `Página ${pageIndex + 1} • ${filteredData.length} arquivo(s)`
-              : `${filteredData.length} arquivo(s)`}
+              ? `${t.console.page} ${pageIndex + 1} • ${t.console.filesCount(filteredData.length)}`
+              : t.console.filesCount(filteredData.length)}
           </span>
         </div>
 
@@ -355,10 +375,10 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
                 disabled={!hasPrevPage || isLoading}
                 className="h-8 text-xs px-2.5 gap-1"
               >
-                Anterior
+                {t.console.previous}
               </Button>
               <span className="text-[11px] px-2 font-medium">
-                Página {pageIndex + 1}
+                {t.console.page} {pageIndex + 1}
               </span>
               <Button
                 variant="outline"
@@ -367,7 +387,7 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
                 disabled={!hasNextPage || isLoading}
                 className="h-8 text-xs px-2.5 gap-1"
               >
-                Próximo
+                {t.console.next}
               </Button>
             </div>
           ) : table.getPageCount() > 1 ? (
@@ -379,7 +399,7 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
                 disabled={!table.getCanPreviousPage()}
                 className="h-8 text-xs px-2.5"
               >
-                Anterior
+                {t.console.previous}
               </Button>
               <span className="text-[11px] px-2 font-medium">
                 {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
@@ -391,7 +411,7 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
                 disabled={!table.getCanNextPage()}
                 className="h-8 text-xs px-2.5"
               >
-                Próximo
+                {t.console.next}
               </Button>
             </div>
           ) : null}
@@ -401,9 +421,9 @@ export const FilesDataTable: React.FC<FilesDataTableProps> = ({
       <ConfirmDialog
         open={batchDeleteOpen}
         onOpenChange={setBatchDeleteOpen}
-        title="Excluir Arquivos em Lote"
+        title={t.console.batchDeleteTitle}
         description={t.console.batchDeleteConfirm(selectedCount)}
-        confirmText="Excluir Selecionados"
+        confirmText={t.console.batchDeleteConfirmButton}
         cancelText={t.common.cancel}
         variant="destructive"
         onConfirm={handleConfirmBatchDelete}

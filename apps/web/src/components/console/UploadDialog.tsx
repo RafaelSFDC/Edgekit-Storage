@@ -22,7 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUploadMutation } from '../../hooks/api/use-upload';
 import { queryKeys } from '../../hooks/api/query-keys';
-import { uploadFile } from '../../services/api';
+import { uploadFilePresigned } from '../../services/api';
 import { useI18n } from '../../i18n/context';
 import { formatBytes } from '../../lib/utils';
 import { toast } from 'sonner';
@@ -42,9 +42,12 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
   const [isPrivate, setIsPrivate] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const queryClient = useQueryClient();
   const uploadMutation = useUploadMutation();
+  const isSubmittingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const resetForm = () => {
     setSelectedFiles([]);
@@ -53,6 +56,8 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
     setPreserveName(true);
     setIsPrivate(false);
     setUploadProgress(null);
+    setIsSubmitting(false);
+    isSubmittingRef.current = false;
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -74,71 +79,91 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
     setSelectedFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
-  const isUploading = uploadMutation.isPending || uploadProgress !== null;
-  const isSubmittingRef = useRef(false);
+  const isUploading = uploadMutation.isPending || uploadProgress !== null || isSubmitting;
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    resetForm();
+    onOpenChange(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedFiles.length === 0 || isSubmittingRef.current || isUploading) return;
+    if (selectedFiles.length === 0 || isSubmittingRef.current) return;
     isSubmittingRef.current = true;
+    setIsSubmitting(true);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     try {
       if (selectedFiles.length === 1) {
         const file = selectedFiles[0];
-        const formData = new FormData();
-        formData.append('file', file);
-        if (folder.trim()) formData.append('folder', folder.trim());
-        if (customName.trim()) formData.append('customName', customName.trim());
-        if (preserveName) formData.append('preserveName', 'true');
-        if (isPrivate) formData.append('private', 'true');
-
         try {
-          await uploadMutation.mutateAsync(formData);
+          await uploadFilePresigned({
+            file,
+            folder: folder.trim() || undefined,
+            customName: customName.trim() || undefined,
+            preserveName,
+            isPrivate,
+            signal: controller.signal,
+          });
+          toast.success(t.uploadModal.uploadSuccess);
+          queryClient.invalidateQueries({ queryKey: queryKeys.files.all });
+          queryClient.invalidateQueries({ queryKey: queryKeys.stats.all });
           resetForm();
           onOpenChange(false);
-        } catch {
-          // Handled by toast
+        } catch (err: any) {
+          if (err?.name !== 'AbortError') {
+            toast.error(err?.message || t.uploadModal.uploadError);
+          }
         }
         return;
       }
 
-      // Multiple files batch upload
+      // Multiple files batch upload with direct streaming presigned uploads
       setUploadProgress({ current: 0, total: selectedFiles.length });
       let successCount = 0;
       let failCount = 0;
 
       for (let i = 0; i < selectedFiles.length; i++) {
+        if (controller.signal.aborted) break;
         const file = selectedFiles[i];
         setUploadProgress({ current: i + 1, total: selectedFiles.length });
 
-        const formData = new FormData();
-        formData.append('file', file);
-        if (folder.trim()) formData.append('folder', folder.trim());
-        if (preserveName) formData.append('preserveName', 'true');
-        if (isPrivate) formData.append('private', 'true');
-
         try {
-          await uploadFile(formData);
+          await uploadFilePresigned({
+            file,
+            folder: folder.trim() || undefined,
+            preserveName,
+            isPrivate,
+            signal: controller.signal,
+          });
           successCount++;
-        } catch {
+        } catch (err: any) {
+          if (err?.name === 'AbortError') break;
           failCount++;
         }
       }
 
       setUploadProgress(null);
       if (successCount > 0) {
-        toast.success(`${successCount} arquivo(s) enviados com sucesso!`);
+        toast.success(t.uploadModal.batchSuccess(successCount));
         queryClient.invalidateQueries({ queryKey: queryKeys.files.all });
         queryClient.invalidateQueries({ queryKey: queryKeys.stats.all });
       }
       if (failCount > 0) {
-        toast.error(`Falha no envio de ${failCount} arquivo(s).`);
+        toast.error(t.uploadModal.batchError(failCount));
       }
 
       resetForm();
       onOpenChange(false);
     } finally {
       isSubmittingRef.current = false;
+      setIsSubmitting(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -158,7 +183,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
         <DialogHeader className="shrink-0 border-b px-6 py-4">
           <DialogTitle>{t.uploadModal.title}</DialogTitle>
           <DialogDescription>
-            Envie arquivos diretamente para o seu bucket Cloudflare R2 com CDN global.
+            {t.uploadModal.description}
           </DialogDescription>
         </DialogHeader>
 
@@ -195,7 +220,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
                   <span className="text-primary hover:underline">{t.uploadModal.browseText}</span>
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  Suporta múltiplos arquivos, PDFs, imagens e documentos até 25MB
+                  {t.uploadModal.supportText}
                 </p>
               </div>
             </button>
@@ -205,14 +230,14 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
               <div className="flex flex-col gap-1.5 bg-muted/30 border border-border/70 rounded-lg p-2.5 max-h-44 overflow-y-auto">
                 <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground pb-1 border-b border-border/50">
                   <span>
-                    {selectedFiles.length} arquivo(s) selecionado(s) ({formatBytes(totalBytes)})
+                    {t.uploadModal.filesSelected(selectedFiles.length)} ({formatBytes(totalBytes)})
                   </span>
                   <button
                     type="button"
                     onClick={() => setSelectedFiles([])}
                     className="text-primary hover:underline"
                   >
-                    Limpar todos
+                    {t.uploadModal.clearAll}
                   </button>
                 </div>
 
@@ -260,13 +285,13 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
               {selectedFiles.length <= 1 && (
                 <Field>
                   <FieldLabel htmlFor="customName" className="text-xs">
-                    Nome personalizado (opcional)
+                    {t.uploadModal.customNameLabel}
                   </FieldLabel>
                   <Input
                     id="customName"
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
-                    placeholder="ex: perfil-usuario"
+                    placeholder={t.uploadModal.customNamePlaceholder}
                   />
                 </Field>
               )}
@@ -309,8 +334,7 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isUploading}
+              onClick={handleCancel}
             >
               {t.common.cancel}
             </Button>
@@ -323,13 +347,13 @@ export const UploadDialog: React.FC<UploadDialogProps> = ({ open, onOpenChange }
                   <Loader2 className="size-4 animate-spin" />
                   <span>
                     {uploadProgress
-                      ? `Enviando (${uploadProgress.current}/${uploadProgress.total})...`
+                      ? t.uploadModal.uploadingProgress(uploadProgress.current, uploadProgress.total)
                       : t.uploadModal.uploading}
                   </span>
                 </>
               ) : (
                 <span>
-                  {t.common.upload}{' '}
+                  {t.console.uploadButton}{' '}
                   {selectedFiles.length > 1 ? `(${selectedFiles.length})` : ''}
                 </span>
               )}

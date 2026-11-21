@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
+import { ApiError } from '../services/api';
 
 /**
  * React Query client configuration
@@ -16,6 +17,10 @@ export function getQueryClient(): QueryClient {
           staleTime: 30 * 1000,
           gcTime: 5 * 60 * 1000,
           retry: (failureCount, error: any) => {
+            // Halt retries immediately on client errors (4xx)
+            if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
+              return false;
+            }
             if (error?.status >= 400 && error?.status < 500) {
               return false;
             }
@@ -51,46 +56,3 @@ if (typeof window !== 'undefined') {
     }, 800);
   });
 }
-
-/**
- * Utility functions for cache management
- */
-export const cacheUtils = {
-  /**
-   * Clear all cache
-   */
-  clearAll: () => {
-    queryClient.clear();
-  },
-
-  /**
-   * Remove specific query from cache
-   */
-  removeQuery: (queryKey: ReadonlyArray<unknown>) => {
-    queryClient.removeQueries({ queryKey });
-  },
-
-  /**
-   * Set query data manually
-   */
-  setQueryData: <T>(queryKey: ReadonlyArray<unknown>, data: T) => {
-    queryClient.setQueryData(queryKey, data);
-  },
-
-  /**
-   * Get query data from cache
-   */
-  getQueryData: <T>(queryKey: ReadonlyArray<unknown>): T | undefined => {
-    return queryClient.getQueryData<T>(queryKey);
-  },
-
-  /**
-   * Prefetch query
-   */
-  prefetchQuery: async (
-    queryKey: ReadonlyArray<unknown>,
-    queryFn: () => Promise<any>
-  ) => {
-    await queryClient.prefetchQuery({ queryKey, queryFn });
-  },
-};

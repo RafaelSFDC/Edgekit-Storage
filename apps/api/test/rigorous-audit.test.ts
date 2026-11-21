@@ -17,8 +17,8 @@ describe('Rigorous Backend Audit & Extreme Edge Cases Suite', () => {
         requiresAuth: false,
       },
       {
-        name: 'POST /upload/presigned',
-        path: '/upload/presigned',
+        name: 'POST /api/upload/presigned',
+        path: '/api/upload/presigned',
         method: 'POST',
         requiresAuth: true,
       },
@@ -134,7 +134,7 @@ describe('Rigorous Backend Audit & Extreme Edge Cases Suite', () => {
       const key = generateStorageKey({ filename: 'contract.pdf', isPrivate: true });
       expect(key.startsWith('private/')).toBe(true);
 
-      const resolvedUrl = resolveFileUrl(key, 'http://localhost/upload', undefined, true);
+      const resolvedUrl = resolveFileUrl(key, 'http://localhost/api/upload', undefined, true);
 
       // The resolved URL should be http://localhost/private/2026/... NOT /private/private/...
       expect(resolvedUrl).not.toContain('/private/private/');
@@ -188,7 +188,7 @@ describe('Rigorous Backend Audit & Extreme Edge Cases Suite', () => {
       const { uploadUrl } = await buildPresignedUploadUrl({
         key,
         secret: env.API_KEY,
-        requestUrl: 'http://localhost/upload/presigned',
+        requestUrl: 'http://localhost/api/upload/presigned',
         expiresInSeconds: 600,
       });
 
@@ -443,7 +443,7 @@ describe('Rigorous Backend Audit & Extreme Edge Cases Suite', () => {
   // 11. VARIANT UPLOAD MIME & SIZE HARDENING (SEC-01 & SEC-02)
   // =========================================================================
   describe('Variant Upload MIME & Size Limit Enforcement', () => {
-    it('POST /upload must reject forbidden MIME types in variant files (SEC-01)', async () => {
+    it('POST /api/upload must reject forbidden MIME types in variant files (SEC-01)', async () => {
       const env = createMockEnv({ ALLOWED_MIME_TYPES: 'image/png' });
       const ctx = createMockExecutionContext();
 
@@ -455,7 +455,7 @@ describe('Rigorous Backend Audit & Extreme Edge Cases Suite', () => {
       form.append('variant_exploit', forbiddenVariant);
 
       const res = await app.fetch(
-        new Request('http://localhost/upload', {
+        new Request('http://localhost/api/upload', {
           method: 'POST',
           headers: {
             'X-API-Key': env.API_KEY,
@@ -471,7 +471,7 @@ describe('Rigorous Backend Audit & Extreme Edge Cases Suite', () => {
       expect(json.error.message).toContain('not allowed');
     });
 
-    it('POST /upload must reject variants exceeding MAX_FILE_SIZE_MB (SEC-02)', async () => {
+    it('POST /api/upload must reject variants exceeding MAX_FILE_SIZE_MB (SEC-02)', async () => {
       const env = createMockEnv({ MAX_FILE_SIZE_MB: '1' });
       const ctx = createMockExecutionContext();
 
@@ -483,7 +483,7 @@ describe('Rigorous Backend Audit & Extreme Edge Cases Suite', () => {
       form.append('variant_huge', hugeVariant);
 
       const res = await app.fetch(
-        new Request('http://localhost/upload', {
+        new Request('http://localhost/api/upload', {
           method: 'POST',
           headers: {
             'X-API-Key': env.API_KEY,
@@ -534,12 +534,12 @@ describe('Rigorous Backend Audit & Extreme Edge Cases Suite', () => {
   // 13. TYPE RESILIENCE ON OPTIONAL BODY FIELDS (BUG-01)
   // =========================================================================
   describe('Type Resilience On Malformed Optional Body Fields', () => {
-    it('POST /upload/presigned handles numeric customName cleanly without 500 error', async () => {
+    it('POST /api/upload/presigned handles numeric customName cleanly without 500 error', async () => {
       const env = createMockEnv();
       const ctx = createMockExecutionContext();
 
       const res = await app.fetch(
-        new Request('http://localhost/upload/presigned', {
+        new Request('http://localhost/api/upload/presigned', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -28,7 +28,7 @@ describe('Backend Edge Cases, Concurrency & Security Flaws Suite', () => {
     const key = generateStorageKey({ filename: 'secret.pdf', isPrivate: true });
     expect(key.startsWith('private/')).toBe(true);
 
-    const resolvedUrl = resolveFileUrl(key, 'http://localhost/upload', undefined, true);
+    const resolvedUrl = resolveFileUrl(key, 'http://localhost/api/upload', undefined, true);
     // Checks that the resolved URL does NOT contain '/private/private/'
     const hasDoublePrivate = resolvedUrl.includes('/private/private/');
     expect(hasDoublePrivate).toBe(false);
@@ -73,7 +73,7 @@ describe('Backend Edge Cases, Concurrency & Security Flaws Suite', () => {
     formData.append('file', unicodeFile);
 
     const res = await app.fetch(
-      new Request('http://localhost/upload', {
+      new Request('http://localhost/api/upload', {
         method: 'POST',
         headers: { 'X-API-Key': env.API_KEY },
         body: formData,
@@ -101,7 +101,7 @@ describe('Backend Edge Cases, Concurrency & Security Flaws Suite', () => {
     formData.append('file', longFile);
 
     const res = await app.fetch(
-      new Request('http://localhost/upload', {
+      new Request('http://localhost/api/upload', {
         method: 'POST',
         headers: { 'X-API-Key': env.API_KEY },
         body: formData,
@@ -156,7 +156,7 @@ describe('Backend Edge Cases, Concurrency & Security Flaws Suite', () => {
       formData.append('folder', 'concurrent-test');
 
       return app.fetch(
-        new Request('http://localhost/upload', {
+        new Request('http://localhost/api/upload', {
           method: 'POST',
           headers: { 'X-API-Key': env.API_KEY },
           body: formData,

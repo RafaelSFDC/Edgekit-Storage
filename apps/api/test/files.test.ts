@@ -258,4 +258,54 @@ describe('Backend Files Management & Streaming Suite', () => {
     expect(json.data.url).toContain('token=');
     expect(json.data.expiresInSeconds).toBe(1800);
   });
+
+  it('GET /api/files should properly map customMetadata in the response', async () => {
+    const env = createMockEnv();
+    const ctx = createMockExecutionContext();
+
+    await env.BUCKET.put('docs/spec.pdf', new Uint8Array([1, 2, 3]), {
+      httpMetadata: { contentType: 'application/pdf' },
+      customMetadata: { originalName: 'specification.pdf', uploadedVia: 'dashboard' },
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/api/files', {
+        headers: { 'X-API-Key': env.API_KEY },
+      }),
+      env,
+      ctx
+    );
+
+    expect(res.status).toBe(200);
+    const json: any = await res.json();
+    const target = json.data.objects.find((o: any) => o.key === 'docs/spec.pdf');
+    expect(target).toBeDefined();
+    expect(target.customMetadata).toEqual({
+      originalName: 'specification.pdf',
+      uploadedVia: 'dashboard',
+    });
+  });
+
+  it('GET /api/files should filter objects by prefix and normalize leading slashes', async () => {
+    const env = createMockEnv();
+    const ctx = createMockExecutionContext();
+
+    await env.BUCKET.put('reports/2026/q1.pdf', new Uint8Array([1]));
+    await env.BUCKET.put('reports/2026/q2.pdf', new Uint8Array([2]));
+    await env.BUCKET.put('images/banner.png', new Uint8Array([3]));
+
+    // Query with leading slash '/reports/' should normalize to 'reports/'
+    const res = await app.fetch(
+      new Request('http://localhost/api/files?prefix=/reports/', {
+        headers: { 'X-API-Key': env.API_KEY },
+      }),
+      env,
+      ctx
+    );
+
+    expect(res.status).toBe(200);
+    const json: any = await res.json();
+    expect(json.data.objects.length).toBe(2);
+    expect(json.data.objects.every((o: any) => o.key.startsWith('reports/'))).toBe(true);
+  });
 });

@@ -43,9 +43,19 @@ export function generateStorageKey(options: GenerateKeyOptions): string {
 
   // If a full customName is specified, use it directly (sanitized)
   if (options.customName) {
-    const cleanCustom = sanitizeSegment(options.customName);
-    parts.push(cleanCustom);
-    return parts.join('/');
+    let cleanCustom = sanitizeSegment(options.customName);
+    // Strip leading private/ to prevent path prefix poisoning or double private
+    cleanCustom = cleanCustom.replace(/^private\/+/, '');
+    // Clean any empty or traversal segments
+    cleanCustom = cleanCustom
+      .split('/')
+      .filter((s) => s && s !== '.' && s !== '..')
+      .join('/');
+
+    if (cleanCustom) {
+      parts.push(cleanCustom);
+      return parts.join('/');
+    }
   }
 
   // Add date partition (YYYY/MM)
@@ -240,7 +250,75 @@ export async function buildPresignedUploadUrl(options: {
 
   const parsedRequest = new URL(requestUrl);
   const workerBase = `${parsedRequest.protocol}//${parsedRequest.host}`;
-  const uploadUrl = `${workerBase}/upload/presigned/${cleanKey}?token=${token}&expires=${expiresAt}`;
+  const uploadUrl = `${workerBase}/api/upload/presigned/${cleanKey}?token=${token}&expires=${expiresAt}`;
 
   return { uploadUrl, expiresAt, token };
+}
+
+/**
+ * Generates an HMAC-SHA256 signed session token (<timestamp>.<signatureHex>)
+ */
+export async function generateSessionToken(secret: string): Promise<string> {
+  const timestamp = Math.floor(Date.now() / 1000);
+  const enc = new TextEncoder();
+  const keyData = enc.encode(secret);
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const data = enc.encode(`session:${timestamp}`);
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, data);
+  const signatureHex = Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  return `${timestamp}.${signatureHex}`;
+}
+
+/**
+ * Verifies an HMAC-SHA256 signed session token (<timestamp>.<signatureHex>)
+ */
+export async function verifySessionToken(
+  token: string,
+  secret: string,
+  maxAgeSeconds = 60 * 60 * 24 * 7 // 7 days
+): Promise<boolean> {
+  if (!token || typeof token !== 'string') return false;
+
+  const dotIdx = token.indexOf('.');
+  if (dotIdx === -1) return false;
+
+  const timestampStr = token.slice(0, dotIdx);
+  const signatureHex = token.slice(dotIdx + 1);
+
+  const timestamp = Number(timestampStr);
+  if (isNaN(timestamp) || !signatureHex) return false;
+
+  const now = Math.floor(Date.now() / 1000);
+  // Allow up to 60s clock skew, and reject if older than maxAgeSeconds
+  if (now < timestamp - 60 || now > timestamp + maxAgeSeconds) {
+    return false;
+  }
+
+  const enc = new TextEncoder();
+  const keyData = enc.encode(secret);
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const data = enc.encode(`session:${timestamp}`);
+  const expectedSignature = await crypto.subtle.sign('HMAC', cryptoKey, data);
+  const expectedHex = Array.from(new Uint8Array(expectedSignature))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  return timingSafeEqualStr(signatureHex, expectedHex);
 }

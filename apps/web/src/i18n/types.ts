@@ -47,6 +47,8 @@ export interface Translations {
     themeLight: string;
     themeDark: string;
     signOut: string;
+    language: string;
+    appearance: string;
   };
   login: {
     title: string;
@@ -91,6 +93,29 @@ export interface Translations {
     filterPublic: string;
     deleteSuccess: string;
     deleteError: string;
+    allFolders: string;
+    filesCount: (count: number) => string;
+    filesSelected: (count: number) => string;
+    batchDeleteTitle: string;
+    batchDeleteConfirmButton: string;
+    firstUpload: string;
+    page: string;
+    previous: string;
+    next: string;
+    colFile: string;
+    colSize: string;
+    colVisibility: string;
+    colUploadedAt: string;
+    privateBadge: string;
+    publicBadge: string;
+    copyUrl: string;
+    generateSigned: string;
+    openNewTab: string;
+    deleteFile: string;
+    deleteFileDialogTitle: string;
+    deleteFileDialogDesc: (name: string) => string;
+    urlCopied: string;
+    urlCopyError: string;
   };
   uploadModal: {
     title: string;
@@ -104,6 +129,15 @@ export interface Translations {
     uploading: string;
     uploadSuccess: string;
     uploadError: string;
+    description: string;
+    supportText: string;
+    filesSelected: (count: number) => string;
+    clearAll: string;
+    customNameLabel: string;
+    customNamePlaceholder: string;
+    batchSuccess: (count: number) => string;
+    batchError: (count: number) => string;
+    uploadingProgress: (current: number, total: number) => string;
   };
   previewModal: {
     title: string;
@@ -116,6 +150,9 @@ export interface Translations {
     generateSignedUrl: string;
     expiresIn: string;
     copyUrl: string;
+    privateFile: string;
+    publicFile: string;
+    open: string;
   };
   signedModal: {
     title: string;

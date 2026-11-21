@@ -9,7 +9,7 @@ describe('Backend Upload Pipeline Suite', () => {
 
     const emptyFormData = new FormData();
     const res = await app.fetch(
-      new Request('http://localhost/upload', {
+      new Request('http://localhost/api/upload', {
         method: 'POST',
         headers: { 'X-API-Key': env.API_KEY },
         body: emptyFormData,
@@ -33,7 +33,7 @@ describe('Backend Upload Pipeline Suite', () => {
     formData.append('file', emptyFile);
 
     const res = await app.fetch(
-      new Request('http://localhost/upload', {
+      new Request('http://localhost/api/upload', {
         method: 'POST',
         headers: { 'X-API-Key': env.API_KEY },
         body: formData,
@@ -60,7 +60,7 @@ describe('Backend Upload Pipeline Suite', () => {
     formData.append('file', largeFile);
 
     const res = await app.fetch(
-      new Request('http://localhost/upload', {
+      new Request('http://localhost/api/upload', {
         method: 'POST',
         headers: { 'X-API-Key': env.API_KEY },
         body: formData,
@@ -85,7 +85,7 @@ describe('Backend Upload Pipeline Suite', () => {
     formData.append('file', scriptFile);
 
     const res = await app.fetch(
-      new Request('http://localhost/upload', {
+      new Request('http://localhost/api/upload', {
         method: 'POST',
         headers: { 'X-API-Key': env.API_KEY },
         body: formData,
@@ -111,7 +111,7 @@ describe('Backend Upload Pipeline Suite', () => {
     formData.append('folder', 'profiles');
 
     const res = await app.fetch(
-      new Request('http://localhost/upload', {
+      new Request('http://localhost/api/upload', {
         method: 'POST',
         headers: { 'X-API-Key': env.API_KEY },
         body: formData,
@@ -148,7 +148,7 @@ describe('Backend Upload Pipeline Suite', () => {
     formData.append('variant[medium]', medium);
 
     const res = await app.fetch(
-      new Request('http://localhost/upload', {
+      new Request('http://localhost/api/upload', {
         method: 'POST',
         headers: { 'X-API-Key': env.API_KEY },
         body: formData,
@@ -179,7 +179,7 @@ describe('Backend Upload Pipeline Suite', () => {
     formData.append('customName', '../../etc/passwd');
 
     const res = await app.fetch(
-      new Request('http://localhost/upload', {
+      new Request('http://localhost/api/upload', {
         method: 'POST',
         headers: { 'X-API-Key': env.API_KEY },
         body: formData,

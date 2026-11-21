@@ -11,13 +11,13 @@ const SNIPPETS: Record<string, { title: string; lang: string; code: string }> = 
     title: 'cURL (CLI)',
     lang: 'bash',
     code: `# 1. Upload de Arquivo Público
-curl -X POST "http://localhost:8787/upload" \\
+curl -X POST "http://localhost:8787/api/upload" \\
   -H "X-API-Key: sua-chave-aqui" \\
   -F "file=@./imagem.png" \\
   -F "folder=uploads"
 
 # 2. Upload de Arquivo Privado
-curl -X POST "http://localhost:8787/upload" \\
+curl -X POST "http://localhost:8787/api/upload" \\
   -H "X-API-Key: sua-chave-aqui" \\
   -F "file=@./documento.pdf" \\
   -F "private=true"
@@ -43,7 +43,7 @@ async function uploadFile(filePath: string, folder = 'uploads') {
   formData.append('file', new Blob([fileBuffer]), 'foto.png');
   formData.append('folder', folder);
 
-  const res = await fetch(\`\${BASE_URL}/upload\`, {
+  const res = await fetch(\`\${BASE_URL}/api/upload\`, {
     method: 'POST',
     headers: { 'X-API-Key': API_KEY },
     body: formData,
@@ -65,7 +65,7 @@ BASE_URL = "http://localhost:8787"
 # Upload simples
 with open("avatar.png", "rb") as f:
     response = requests.post(
-        f"{BASE_URL}/upload",
+        f"{BASE_URL}/api/upload",
         headers={"X-API-Key": API_KEY},
         files={"file": f},
         data={"folder": "users", "preserveName": "true"}
@@ -79,7 +79,7 @@ print(response.json())`,
     code: `<?php
 
 $apiKey = 'sua-chave-aqui';
-$ch = curl_init('http://localhost:8787/upload');
+$ch = curl_init('http://localhost:8787/api/upload');
 
 $cfile = new CURLFile('arquivo.pdf', 'application/pdf', 'arquivo.pdf');
 $data = [
@@ -121,7 +121,7 @@ func main() {
 	io.Copy(part, file)
 	writer.Close()
 
-	req, _ := http.NewRequest("POST", "http://localhost:8787/upload", body)
+	req, _ := http.NewRequest("POST", "http://localhost:8787/api/upload", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set("X-API-Key", "sua-chave-aqui")
 
@@ -144,7 +144,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let client = reqwest::Client::new();
     let res = client
-        .post("http://localhost:8787/upload")
+        .post("http://localhost:8787/api/upload")
         .header("X-API-Key", "sua-chave-aqui")
         .multipart(form)
         .send()

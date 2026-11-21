@@ -220,8 +220,10 @@ filesRouter.get('/api/files', apiKeyAuth(), async (c) => {
   const rawLimit = parseInt(c.req.query('limit') || '20', 10);
   const limit = isNaN(rawLimit) ? 20 : Math.max(1, Math.min(rawLimit, 100));
   const cursor = c.req.query('cursor');
-  const prefix = c.req.query('prefix');
-  const delimiter = c.req.query('delimiter');
+  const rawPrefix = c.req.query('prefix');
+  const prefix = rawPrefix && rawPrefix.trim() !== '' ? rawPrefix.trim().replace(/^\/+/, '') : undefined;
+  const rawDelimiter = c.req.query('delimiter');
+  const delimiter = rawDelimiter && rawDelimiter.trim() !== '' ? rawDelimiter.trim() : undefined;
 
   try {
     const listed = await c.env.BUCKET.list({
@@ -242,6 +244,7 @@ filesRouter.get('/api/files', apiKeyAuth(), async (c) => {
         mimeType,
         url: resolveFileUrl(obj.key, c.req.url, c.env.PUBLIC_URL, isPrivate),
         etag: obj.httpEtag,
+        customMetadata: obj.customMetadata,
         isPrivate,
       };
     });

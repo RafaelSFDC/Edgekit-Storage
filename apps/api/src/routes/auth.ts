@@ -3,13 +3,38 @@ import { setCookie, deleteCookie } from 'hono/cookie';
 import type { AppContext } from '../env';
 import { apiKeyAuth, AUTH_COOKIE_NAME } from '../middleware/auth';
 import { apiError, apiSuccess } from '../utils/response';
-import { timingSafeEqualStr } from '../utils/keys';
+import { timingSafeEqualStr, generateSessionToken } from '../utils/keys';
 
 export const authRouter = new Hono<AppContext>();
 
+function getCookieOptions(c: any) {
+  const requestUrl = new URL(c.req.url);
+  const isLocalhost =
+    requestUrl.hostname === 'localhost' ||
+    requestUrl.hostname === '127.0.0.1' ||
+    requestUrl.hostname === '[::1]';
+
+  const originHeader = c.req.header('origin');
+  let isCrossOrigin = false;
+  if (originHeader) {
+    try {
+      const originUrl = new URL(originHeader);
+      if (originUrl.host !== requestUrl.host) {
+        isCrossOrigin = true;
+      }
+    } catch {}
+  }
+
+  return {
+    path: '/',
+    secure: !isLocalhost || (isCrossOrigin && originHeader?.startsWith('https:')),
+    sameSite: (isCrossOrigin && !isLocalhost ? 'None' : 'Lax') as 'None' | 'Lax',
+  };
+}
+
 /**
  * POST /api/auth/login
- * Validates the provided API key and sets a secure HttpOnly session cookie.
+ * Validates the provided API key and sets a secure HMAC-SHA256 signed session cookie.
  */
 authRouter.post('/login', async (c) => {
   let body: { apiKey?: string };
@@ -37,30 +62,13 @@ authRouter.post('/login', async (c) => {
     return apiError(c, 'Invalid API Key', 401);
   }
 
-  const requestUrl = new URL(c.req.url);
-  const isLocalhost =
-    requestUrl.hostname === 'localhost' ||
-    requestUrl.hostname === '127.0.0.1' ||
-    requestUrl.hostname === '[::1]';
+  // Issue cryptographically signed session token (<timestamp>.<hmacSignature>)
+  const sessionToken = await generateSessionToken(configuredKey);
+  const cookieOpts = getCookieOptions(c);
 
-  const originHeader = c.req.header('origin');
-  let isCrossOrigin = false;
-  if (originHeader) {
-    try {
-      const originUrl = new URL(originHeader);
-      if (originUrl.host !== requestUrl.host) {
-        isCrossOrigin = true;
-      }
-    } catch {}
-  }
-
-  // Set secure HttpOnly cookie (7 days duration)
-  // Use SameSite=None + Secure for cross-origin deployments with HTTPS
-  setCookie(c, AUTH_COOKIE_NAME, apiKey.trim(), {
+  setCookie(c, AUTH_COOKIE_NAME, sessionToken, {
+    ...cookieOpts,
     httpOnly: true,
-    secure: !isLocalhost || (isCrossOrigin && originHeader?.startsWith('https:')),
-    sameSite: isCrossOrigin && !isLocalhost ? 'None' : 'Lax',
-    path: '/',
     maxAge: 60 * 60 * 24 * 7,
   });
 
@@ -75,28 +83,8 @@ authRouter.post('/login', async (c) => {
  * Clears the HttpOnly session cookie.
  */
 authRouter.post('/logout', (c) => {
-  const requestUrl = new URL(c.req.url);
-  const isLocalhost =
-    requestUrl.hostname === 'localhost' ||
-    requestUrl.hostname === '127.0.0.1' ||
-    requestUrl.hostname === '[::1]';
-
-  const originHeader = c.req.header('origin');
-  let isCrossOrigin = false;
-  if (originHeader) {
-    try {
-      const originUrl = new URL(originHeader);
-      if (originUrl.host !== requestUrl.host) {
-        isCrossOrigin = true;
-      }
-    } catch {}
-  }
-
-  deleteCookie(c, AUTH_COOKIE_NAME, {
-    path: '/',
-    secure: !isLocalhost || (isCrossOrigin && originHeader?.startsWith('https:')),
-    sameSite: isCrossOrigin && !isLocalhost ? 'None' : 'Lax',
-  });
+  const cookieOpts = getCookieOptions(c);
+  deleteCookie(c, AUTH_COOKIE_NAME, cookieOpts);
 
   return apiSuccess(c, {
     authenticated: false,

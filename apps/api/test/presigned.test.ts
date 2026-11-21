@@ -4,12 +4,12 @@ import { createMockEnv, createMockExecutionContext } from './helpers/mock-env';
 import { generateSignedUploadToken, generateSignedToken } from '../src/utils/keys';
 
 describe('Backend Presigned Upload Pipeline Suite', () => {
-  it('POST /upload/presigned should require authentication', async () => {
+  it('POST /api/upload/presigned should require authentication', async () => {
     const env = createMockEnv();
     const ctx = createMockExecutionContext();
 
     const res = await app.fetch(
-      new Request('http://localhost/upload/presigned', {
+      new Request('http://localhost/api/upload/presigned', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: 'test.jpg' }),
@@ -21,12 +21,12 @@ describe('Backend Presigned Upload Pipeline Suite', () => {
     expect(res.status).toBe(401);
   });
 
-  it('POST /upload/presigned should validate required filename', async () => {
+  it('POST /api/upload/presigned should validate required filename', async () => {
     const env = createMockEnv();
     const ctx = createMockExecutionContext();
 
     const res = await app.fetch(
-      new Request('http://localhost/upload/presigned', {
+      new Request('http://localhost/api/upload/presigned', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -43,12 +43,12 @@ describe('Backend Presigned Upload Pipeline Suite', () => {
     expect(json.error.message).toContain('Field "filename" is required');
   });
 
-  it('POST /upload/presigned should reject disallowed MIME type', async () => {
+  it('POST /api/upload/presigned should reject disallowed MIME type', async () => {
     const env = createMockEnv({ ALLOWED_MIME_TYPES: 'image/*,application/pdf' });
     const ctx = createMockExecutionContext();
 
     const res = await app.fetch(
-      new Request('http://localhost/upload/presigned', {
+      new Request('http://localhost/api/upload/presigned', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -63,12 +63,12 @@ describe('Backend Presigned Upload Pipeline Suite', () => {
     expect(res.status).toBe(415);
   });
 
-  it('POST /upload/presigned should generate valid presigned upload URL and variants', async () => {
+  it('POST /api/upload/presigned should generate valid presigned upload URL and variants', async () => {
     const env = createMockEnv();
     const ctx = createMockExecutionContext();
 
     const res = await app.fetch(
-      new Request('http://localhost/upload/presigned', {
+      new Request('http://localhost/api/upload/presigned', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ describe('Backend Presigned Upload Pipeline Suite', () => {
     expect(res.status).toBe(201);
     const json: any = await res.json();
     expect(json.success).toBe(true);
-    expect(json.data.uploadUrl).toContain('/upload/presigned/');
+    expect(json.data.uploadUrl).toContain('/api/upload/presigned/');
     expect(json.data.uploadUrl).toContain('token=');
     expect(json.data.uploadUrl).toContain('expires=');
     expect(json.data.variants).toBeDefined();
@@ -95,12 +95,12 @@ describe('Backend Presigned Upload Pipeline Suite', () => {
     expect(json.data.variants.hd).toBeDefined();
   });
 
-  it('PUT /upload/presigned/:key should reject requests without token or expiration', async () => {
+  it('PUT /api/upload/presigned/:key should reject requests without token or expiration', async () => {
     const env = createMockEnv();
     const ctx = createMockExecutionContext();
 
     const res = await app.fetch(
-      new Request('http://localhost/upload/presigned/2026/10/photo.jpg', {
+      new Request('http://localhost/api/upload/presigned/2026/10/photo.jpg', {
         method: 'PUT',
         body: new Uint8Array([1, 2, 3]),
       }),
@@ -113,7 +113,7 @@ describe('Backend Presigned Upload Pipeline Suite', () => {
     expect(json.error.message).toContain('Missing presigned token or expiration');
   });
 
-  it('PUT /upload/presigned/:key should reject expired tokens', async () => {
+  it('PUT /api/upload/presigned/:key should reject expired tokens', async () => {
     const env = createMockEnv();
     const ctx = createMockExecutionContext();
 
@@ -123,7 +123,7 @@ describe('Backend Presigned Upload Pipeline Suite', () => {
 
     const res = await app.fetch(
       new Request(
-        `http://localhost/upload/presigned/${key}?token=${expiredToken}&expires=${pastExpires}`,
+        `http://localhost/api/upload/presigned/${key}?token=${expiredToken}&expires=${pastExpires}`,
         {
           method: 'PUT',
           body: new Uint8Array([1, 2, 3]),
@@ -138,7 +138,7 @@ describe('Backend Presigned Upload Pipeline Suite', () => {
     expect(json.error.message).toContain('invalid or expired');
   });
 
-  it('PUT /upload/presigned/:key should reject tampered HMAC token', async () => {
+  it('PUT /api/upload/presigned/:key should reject tampered HMAC token', async () => {
     const env = createMockEnv();
     const ctx = createMockExecutionContext();
 
@@ -148,7 +148,7 @@ describe('Backend Presigned Upload Pipeline Suite', () => {
 
     const res = await app.fetch(
       new Request(
-        `http://localhost/upload/presigned/${key}?token=${fakeToken}&expires=${futureExpires}`,
+        `http://localhost/api/upload/presigned/${key}?token=${fakeToken}&expires=${futureExpires}`,
         {
           method: 'PUT',
           body: new Uint8Array([1, 2, 3]),
@@ -161,7 +161,7 @@ describe('Backend Presigned Upload Pipeline Suite', () => {
     expect(res.status).toBe(403);
   });
 
-  it('PUT /upload/presigned/:key should reject reuse of download token for upload (cryptographic domain separation)', async () => {
+  it('PUT /api/upload/presigned/:key should reject reuse of download token for upload (cryptographic domain separation)', async () => {
     const env = createMockEnv();
     const ctx = createMockExecutionContext();
 
@@ -172,7 +172,7 @@ describe('Backend Presigned Upload Pipeline Suite', () => {
 
     const res = await app.fetch(
       new Request(
-        `http://localhost/upload/presigned/${key}?token=${downloadToken}&expires=${futureExpires}`,
+        `http://localhost/api/upload/presigned/${key}?token=${downloadToken}&expires=${futureExpires}`,
         {
           method: 'PUT',
           body: new Uint8Array([1, 2, 3]),
@@ -185,7 +185,7 @@ describe('Backend Presigned Upload Pipeline Suite', () => {
     expect(res.status).toBe(403);
   });
 
-  it('PUT /upload/presigned/:key should successfully save file with valid presigned token', async () => {
+  it('PUT /api/upload/presigned/:key should successfully save file with valid presigned token', async () => {
     const env = createMockEnv();
     const ctx = createMockExecutionContext();
 
@@ -196,7 +196,7 @@ describe('Backend Presigned Upload Pipeline Suite', () => {
     const fileBytes = new TextEncoder().encode('presigned-file-content');
     const res = await app.fetch(
       new Request(
-        `http://localhost/upload/presigned/${key}?token=${validToken}&expires=${futureExpires}`,
+        `http://localhost/api/upload/presigned/${key}?token=${validToken}&expires=${futureExpires}`,
         {
           method: 'PUT',
           headers: {

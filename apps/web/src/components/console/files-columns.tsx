@@ -19,6 +19,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 import type { StorageObject } from '../../types';
+import type { Translations } from '../../i18n/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -33,6 +34,8 @@ import { formatBytes, formatDate, copyToClipboard } from '../../lib/utils';
 import { toast } from 'sonner';
 
 export interface FilesTableMeta {
+  t?: Translations;
+  locale?: string;
   onPreview?: (file: StorageObject) => void;
   onGenerateSignedUrl?: (file: StorageObject) => void;
   onDelete?: (key: string) => void;
@@ -77,7 +80,9 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
   // 2. Arquivo (Nome, Chave e Miniatura)
   {
     accessorKey: 'key',
-    header: ({ column }) => {
+    header: ({ column, table }) => {
+      const meta = table.options.meta as FilesTableMeta | undefined;
+      const label = meta?.t?.console.colFile || 'Arquivo';
       const isSorted = column.getIsSorted();
       return (
         <Button
@@ -85,7 +90,7 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
           className="-ml-2 h-8 px-2 text-xs font-semibold text-foreground hover:bg-muted/50"
           onClick={() => column.toggleSorting(isSorted === 'asc')}
         >
-          Arquivo
+          {label}
           {isSorted === 'asc' ? (
             <ArrowUp className="ml-1 size-3.5" />
           ) : isSorted === 'desc' ? (
@@ -154,7 +159,9 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
   // 3. Tamanho
   {
     accessorKey: 'size',
-    header: ({ column }) => {
+    header: ({ column, table }) => {
+      const meta = table.options.meta as FilesTableMeta | undefined;
+      const label = meta?.t?.console.colSize || 'Tamanho';
       const isSorted = column.getIsSorted();
       return (
         <Button
@@ -162,7 +169,7 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
           className="-ml-2 h-8 px-2 text-xs font-semibold text-foreground hover:bg-muted/50"
           onClick={() => column.toggleSorting(isSorted === 'asc')}
         >
-          Tamanho
+          {label}
           {isSorted === 'asc' ? (
             <ArrowUp className="ml-1 size-3.5" />
           ) : isSorted === 'desc' ? (
@@ -183,9 +190,16 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
   // 4. Visibilidade (Público vs Privado)
   {
     accessorKey: 'isPrivate',
-    header: 'Visibilidade',
-    cell: ({ row }) => {
+    header: ({ table }) => {
+      const meta = table.options.meta as FilesTableMeta | undefined;
+      return meta?.t?.console.colVisibility || 'Visibilidade';
+    },
+    cell: ({ row, table }) => {
       const isPrivate = row.original.isPrivate;
+      const meta = table.options.meta as FilesTableMeta | undefined;
+      const label = isPrivate
+        ? (meta?.t?.console.privateBadge || 'Privado')
+        : (meta?.t?.console.publicBadge || 'Público');
       return (
         <Badge
           variant="outline"
@@ -196,7 +210,7 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
           }
         >
           {isPrivate ? <Lock className="size-3" /> : <Globe className="size-3" />}
-          <span>{isPrivate ? 'Privado' : 'Público'}</span>
+          <span>{label}</span>
         </Badge>
       );
     },
@@ -205,7 +219,9 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
   // 5. Data de Envio
   {
     accessorKey: 'uploadedAt',
-    header: ({ column }) => {
+    header: ({ column, table }) => {
+      const meta = table.options.meta as FilesTableMeta | undefined;
+      const label = meta?.t?.console.colUploadedAt || 'Enviado em';
       const isSorted = column.getIsSorted();
       return (
         <Button
@@ -213,7 +229,7 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
           className="-ml-2 h-8 px-2 text-xs font-semibold text-foreground hover:bg-muted/50"
           onClick={() => column.toggleSorting(isSorted === 'asc')}
         >
-          Enviado em
+          {label}
           {isSorted === 'asc' ? (
             <ArrowUp className="ml-1 size-3.5" />
           ) : isSorted === 'desc' ? (
@@ -224,11 +240,14 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
         </Button>
       );
     },
-    cell: ({ row }) => (
-      <span className="text-xs text-muted-foreground whitespace-nowrap">
-        {formatDate(row.original.uploadedAt)}
-      </span>
-    ),
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as FilesTableMeta | undefined;
+      return (
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {formatDate(row.original.uploadedAt, meta?.locale)}
+        </span>
+      );
+    },
   },
 
   // 6. Menu de Ações
@@ -242,9 +261,9 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
       const handleCopyUrl = async () => {
         const success = await copyToClipboard(file.url);
         if (success) {
-          toast.success('URL copiada para a área de transferência!');
+          toast.success(meta?.t?.console.urlCopied || 'URL copiada para a área de transferência!');
         } else {
-          toast.error('Erro ao copiar URL.');
+          toast.error(meta?.t?.console.urlCopyError || 'Erro ao copiar URL.');
         }
       };
 
@@ -261,18 +280,18 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem onClick={() => meta?.onPreview?.(file)}>
                 <Eye className="size-4 mr-2" />
-                <span>Visualizar</span>
+                <span>{meta?.t?.common.preview || 'Visualizar'}</span>
               </DropdownMenuItem>
 
               <DropdownMenuItem onClick={handleCopyUrl}>
                 <Copy className="size-4 mr-2" />
-                <span>Copiar URL</span>
+                <span>{meta?.t?.console.copyUrl || 'Copiar URL'}</span>
               </DropdownMenuItem>
 
               {file.isPrivate && (
                 <DropdownMenuItem onClick={() => meta?.onGenerateSignedUrl?.(file)}>
                   <KeyRound className="size-4 mr-2 text-amber-500" />
-                  <span>Gerar Link Assinado</span>
+                  <span>{meta?.t?.console.generateSigned || 'Gerar Link Assinado'}</span>
                 </DropdownMenuItem>
               )}
 
@@ -280,7 +299,7 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
                 render={
                   <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center">
                     <ExternalLink className="size-4 mr-2" />
-                    <span>Abrir em Nova Aba</span>
+                    <span>{meta?.t?.console.openNewTab || 'Abrir em Nova Aba'}</span>
                   </a>
                 }
               />
@@ -292,7 +311,7 @@ export const filesColumns: ColumnDef<StorageObject>[] = [
                 onClick={() => meta?.onDelete?.(file.key)}
               >
                 <Trash2 className="size-4 mr-2" />
-                <span>Excluir Arquivo</span>
+                <span>{meta?.t?.console.deleteFile || 'Excluir Arquivo'}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
